@@ -47,13 +47,44 @@ export default function AddEntry() {
 
   if (status === 'success') {
     return (
-      <div className="max-w-md mx-auto mt-20 p-8 bg-green-50 rounded-3xl border-2 border-green-200 text-center">
-        <h2 className="text-2xl font-bold text-green-700">🎉 Successfully Registered!</h2>
-        <p className="mt-4 text-green-600">Save your private edit link. Do not share it.</p>
-        <div className="mt-4 p-3 bg-white rounded-xl border select-all font-mono text-xs overflow-hidden">
-          {editLink}
+      <div className="max-w-md mx-auto mt-20 p-8 bg-white rounded-[2.5rem] shadow-2xl text-center border border-slate-100">
+        <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-10 h-10">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+          </svg>
         </div>
-        <button onClick={() => window.location.href = '/'} className="mt-6 bg-green-600 text-white px-6 py-2 rounded-full font-bold">Back to Directory</button>
+        <h2 className="text-2xl font-black text-slate-800">Registration Successful!</h2>
+        <p className="mt-2 text-slate-500">Keep this secret link to edit your profile later. Do not share it.</p>
+        
+        <div className="mt-6 p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-3">
+          <code className="text-[10px] text-slate-600 truncate flex-1 font-mono">
+            {editLink}
+          </code>
+          <button 
+            onClick={() => {
+              navigator.clipboard.writeText(editLink);
+              alert("Link copied to clipboard!");
+            }}
+            className="bg-indigo-600 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 active:scale-95 transition-all"
+          >
+            Copy
+          </button>
+        </div>
+
+        <div className="mt-8 flex flex-col gap-3">
+          <button 
+            onClick={() => window.location.href = '/'} 
+            className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg"
+          >
+            Go to Directory Home
+          </button>
+          <button 
+            onClick={() => setStatus('idle')} 
+            className="text-slate-400 text-sm font-bold hover:text-slate-600"
+          >
+            Add Another Entry
+          </button>
+        </div>
       </div>
     );
   }
