@@ -122,8 +122,7 @@ function EditForm() {
             
             <InputField label="Education" name="education" defaultValue={formData.education} />
             <InputField label="Occupation" name="occupation" defaultValue={formData.occupation} icon={<Briefcase size={16}/>} />
-            <InputField label="Business Name" name="business" defaultValue={formData.business} />
-
+            
             <hr className="my-6 border-slate-100" />
             <h3 className="text-sm font-black text-indigo-600 uppercase tracking-widest mb-4">Family & Contact</h3>
             
@@ -131,7 +130,8 @@ function EditForm() {
               <InputField label="Father's Name" name="father_name" defaultValue={formData.father_name} />
               <InputField label="Mother's Name" name="mother_name" defaultValue={formData.mother_name} />
             </div>
-
+            <InputField label="Business Name" name="business" defaultValue={formData.business} />
+            
             <InputField label="Contact Number" name="contact_number" defaultValue={formData.contact_number} />
           </div>
 
