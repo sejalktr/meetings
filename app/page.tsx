@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, MapPin, Plus, Sparkles, Calendar, Clock } from 'lucide-react';
+import { Search, MapPin, Plus, Sparkles, Calendar, Clock, ArrowRight } from 'lucide-react';
 
 export default function ListingPage() {
   const [entries, setEntries] = useState<any[]>([]);
