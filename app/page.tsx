@@ -10,7 +10,7 @@ export default function ListingPage() {
 
   useEffect(() => {
     async function fetchData() {
-      const { data } = await supabase.from('entries').select('*').order('created_at', { ascending: false });
+      const { data } = await supabase.from('entries').select('*').sort(); //order('created_at', { ascending: false });
       if (data) setEntries(data);
       setLoading(false);
     }
