@@ -3,8 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useParams, useRouter } from 'next/navigation';
 import { 
-  MapPin, Phone, Briefcase, User, GraduationCap, 
-  ArrowLeft, Calendar, Clock, Heart, UserCircle, Sparkles 
+  MapPin, Phone, Briefcase, ArrowLeft, Calendar, 
+  Clock, Heart, Sparkles, Loader2, Share2 
 } from 'lucide-react';
 
 export default function DetailPage() {
@@ -13,161 +13,135 @@ export default function DetailPage() {
   const [person, setPerson] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const calculateAge = (dob: string) => {
-    if (!dob) return "N/A";
-    const birthDate = new Date(dob);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-    return age > 0 ? age : 0;
-  };
-
   useEffect(() => {
-    async function loadPerson() {
-      if (!id) return;
+    async function loadData() {
       const { data } = await supabase.from('entries').select('*').eq('id', id).single();
       if (data) setPerson(data);
       setLoading(false);
     }
-    loadPerson();
+    loadData();
   }, [id]);
 
   if (loading) return (
-    <div className="flex items-center justify-center min-h-screen bg-[#FAFAFA]">
-      <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-emerald-500"></div>
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <Loader2 className="animate-spin text-emerald-500" size={32} />
     </div>
   );
 
-  if (!person) return <div className="text-center mt-20 font-bold">Profile not found.</div>;
-
   return (
-    <div className="min-h-screen bg-[#FAFAFA] pb-32">
-      {/* NAVIGATION */}
-      <nav className="p-4 sticky top-0 bg-white/80 backdrop-blur-md z-50 border-b border-slate-100">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <button onClick={() => router.push('/')} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+    <div className="min-h-screen bg-[#F8FAFC] pb-24">
+      {/* MINIMAL NAV */}
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-6 py-4">
+        <div className="max-w-4xl mx-auto flex justify-between items-center">
+          <button onClick={() => router.push('/')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
             <ArrowLeft size={22} className="text-slate-600" />
           </button>
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Profile Intelligence</span>
-          <div className="w-10"></div>
+          <span className="font-black text-[10px] tracking-[0.3em] uppercase text-slate-400">Profile View</span>
+          <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+            <Share2 size={20} className="text-slate-600" />
+          </button>
         </div>
       </nav>
 
-      {/* BENTO PHOTO GALLERY */}
-      <div className="max-w-4xl mx-auto px-6 mt-8">
-        <div className="grid grid-cols-12 gap-4 h-[350px] md:h-[500px]">
-          {/* Main Photo (Large) */}
-          <div className="col-span-8 relative group overflow-hidden rounded-[2.5rem] shadow-2xl shadow-slate-200">
-            <img 
-              src={person.photo_1} 
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
-              alt="Primary"
-            />
-            <div className="absolute top-6 left-6 bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] text-white font-bold uppercase tracking-widest border border-white/30">
-              Primary View
+      <main className="max-w-4xl mx-auto px-6 pt-8">
+        {/* IMAGE GALLERY - BENTO STYLE */}
+        <div className="grid grid-cols-12 gap-3 h-[320px] md:h-[480px]">
+          <div className="col-span-8 overflow-hidden rounded-[2.5rem] shadow-2xl shadow-slate-200">
+            <img src={person.photo_1} className="w-full h-full object-cover" alt="Primary" />
+          </div>
+          <div className="col-span-4 flex flex-col gap-3">
+            <div className="flex-1 overflow-hidden rounded-[2.5rem] shadow-lg">
+              <img src={person.photo_2 || person.photo_1} className="w-full h-full object-cover grayscale-[0.3]" alt="Secondary" />
+            </div>
+            {/* COMPACT AGE BADGE INSTEAD OF EST CARD */}
+            <div className="h-24 bg-white rounded-[2rem] border border-slate-100 flex flex-col items-center justify-center shadow-sm">
+               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Age</span>
+               <span className="text-2xl font-black text-slate-900">{/* Age Logic */}-</span>
             </div>
           </div>
+        </div>
+
+        {/* PRIMARY IDENTITY */}
+        <div className="mt-10 mb-12">
+          <h1 className="text-5xl md:text-6xl font-black text-slate-900 tracking-tighter leading-[0.9]">
+            {person.name}
+          </h1>
+          <div className="flex flex-wrap items-center gap-4 mt-6">
+            <div className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-100 rounded-full shadow-sm">
+              <Calendar size={14} className="text-emerald-500" />
+              <span className="text-xs font-bold text-slate-600">{person.dob}</span>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-100 rounded-full shadow-sm">
+              <Clock size={14} className="text-emerald-500" />
+              <span className="text-xs font-bold text-slate-600">{person.time || "N/A"}</span>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-100 rounded-full shadow-sm">
+              <MapPin size={14} className="text-emerald-500" />
+              <span className="text-xs font-bold text-slate-600 uppercase tracking-tighter">{person.place}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ROOTS & PROFESSIONAL CARD (DARK THEME) */}
+        <div className="bg-slate-900 rounded-[3.5rem] p-10 md:p-14 text-white shadow-2xl shadow-slate-300 relative overflow-hidden">
+          <Sparkles className="absolute top-10 right-10 text-emerald-500/20" size={80} />
           
-          {/* Side Column */}
-          <div className="col-span-4 flex flex-col gap-4">
-            {/* Secondary Photo */}
-            <div className="h-3/5 overflow-hidden rounded-[2.5rem] shadow-xl shadow-slate-200 group">
-              <img 
-                src={person.photo_2 || person.photo_1} 
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                alt="Secondary"
-              />
-            </div>
-            {/* Emerald Stat Card */}
-            <div className="h-2/5 bg-emerald-500 rounded-[2.5rem] flex flex-col items-center justify-center text-white p-4 shadow-lg shadow-emerald-200">
-              <Sparkles size={24} className="mb-2 opacity-40" />
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-70">Verified Member</p>
-              <p className="text-2xl font-black italic tracking-tighter">Est. 2026</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* TEXT CONTENT */}
-      <div className="max-w-2xl mx-auto px-6 mt-12">
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-black text-slate-900 tracking-tighter mb-2">{person.name}</h1>
-          <div className="flex items-center justify-center gap-3">
-            <span className="text-emerald-600 font-bold text-sm uppercase tracking-widest">{person.occupation}</span>
-            <div className="w-1.5 h-1.5 bg-slate-200 rounded-full"></div>
-            <span className="text-slate-400 font-medium text-sm">{person.place}</span>
-          </div>
-        </div>
-
-        {/* DETAILS GRID */}
-        <div className="grid grid-cols-1 gap-4">
-          <div className="grid grid-cols-3 gap-3">
-            <StatBox icon={<Calendar size={18} className="text-emerald-500"/>} label="DOB" value={person.dob} />
-            <StatBox icon={<UserCircle size={18} className="text-emerald-500"/>} label="Age" value={`${calculateAge(person.dob)} Yrs`} />
-            <StatBox icon={<Clock size={18} className="text-emerald-500"/>} label="Time" value={person.time} />
-          </div>
-
-          <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm space-y-6 mt-4">
-            <DetailItem icon={<MapPin size={20} />} label="Birth Place" value={person.place} />
-            <DetailItem icon={<GraduationCap size={20} />} label="Education" value={person.education} />
-            <DetailItem icon={<Briefcase size={20} />} label="Professional Life" value={person.business || person.occupation} />
-          </div>
-
-          {/* FAMILY SECTION */}
-          <div className="bg-slate-900 p-8 rounded-[3rem] text-white mt-4 shadow-2xl shadow-slate-200 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-8 opacity-10">
-               <Heart size={100} fill="currentColor" />
-            </div>
-            <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
-              Family Roots
-            </h4>
-            <div className="grid grid-cols-2 gap-8 relative z-10">
-              <div>
-                <p className="text-slate-400 text-[10px] font-bold uppercase mb-1">Father</p>
-                <p className="text-lg font-bold">{person.father_name || '—'}</p>
+          <div className="relative z-10 space-y-12">
+            {/* ROOTS SECTION */}
+            <div className="space-y-10">
+              <div className="flex items-center gap-2 text-emerald-500">
+                <Heart size={18} fill="currentColor" />
+                <span className="text-[10px] font-black uppercase tracking-[0.3em]">Family Roots</span>
               </div>
-              <div>
-                <p className="text-slate-400 text-[10px] font-bold uppercase mb-1">Mother</p>
-                <p className="text-lg font-bold">{person.mother_name || '—'}</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div className="space-y-2">
+                  <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Father's Name</p>
+                  <p className="text-3xl font-bold tracking-tight border-l-2 border-emerald-500 pl-4">
+                    {person.father_name || "—"}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Mother's Name</p>
+                  <p className="text-3xl font-bold tracking-tight border-l-2 border-emerald-500 pl-4">
+                    {person.mother_name || "—"}
+                  </p>
+                </div>
               </div>
             </div>
+
+            {/* PROFESSIONAL SECTION - INTEGRATED BELOW ROOTS */}
+            <div className="pt-10 border-t border-white/10 space-y-4">
+              <div className="flex items-center gap-2 text-emerald-500">
+                <Briefcase size={18} />
+                <span className="text-[10px] font-black uppercase tracking-[0.3em]">Profession & Business</span>
+              </div>
+              <div className="space-y-1">
+                <p className="text-3xl font-bold text-white leading-tight">
+                  {person.occupation}
+                </p>
+                <p className="text-xl font-medium text-emerald-400 italic">
+                  {person.business || "Independent Practice"}
+                </p>
+              </div>
+            </div>
+
+            {/* CONTACT SECTION */}
+            <div className="pt-10 border-t border-white/10">
+              <a 
+                href={`tel:${person.contact_number}`}
+                className="inline-flex items-center gap-4 bg-emerald-500 hover:bg-emerald-400 transition-colors px-8 py-4 rounded-3xl"
+              >
+                <Phone size={24} fill="white" />
+                <div className="text-left">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-emerald-900">Direct Contact</p>
+                  <p className="text-xl font-black text-white">{person.contact_number}</p>
+                </div>
+              </a>
+            </div>
           </div>
         </div>
-
-        {/* CALL ACTION */}
-        <div className="fixed bottom-8 left-0 right-0 px-6 z-50">
-          <a 
-            href={`tel:${person.contact_number}`} 
-            className="max-w-md mx-auto flex items-center justify-center gap-3 w-full py-6 bg-emerald-500 text-white rounded-3xl font-black text-lg shadow-2xl shadow-emerald-200 hover:scale-[1.02] active:scale-95 transition-all"
-          >
-            <Phone size={24} fill="currentColor" /> CONTACT NOW
-          </a>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Minimal Components
-function StatBox({ icon, label, value }: any) {
-  return (
-    <div className="bg-white p-4 rounded-3xl border border-slate-100 text-center shadow-sm">
-      <div className="flex justify-center mb-2">{icon}</div>
-      <p className="text-[9px] font-black text-slate-400 uppercase mb-1 tracking-tighter">{label}</p>
-      <p className="text-slate-800 font-bold text-xs truncate">{value || 'N/A'}</p>
-    </div>
-  );
-}
-
-function DetailItem({ icon, label, value }: any) {
-  return (
-    <div className="flex items-start gap-5">
-      <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">{icon}</div>
-      <div>
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-        <p className="text-slate-700 font-bold text-lg leading-tight">{value || 'Not provided'}</p>
-      </div>
+      </main>
     </div>
   );
 }
