@@ -1,158 +1,221 @@
 "use client";
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
+import { 
+  Camera, 
+  CheckCircle, 
+  Loader2, 
+  User, 
+  MapPin, 
+  Briefcase, 
+  Calendar, 
+  Clock, 
+  GraduationCap, 
+  Heart,
+  ChevronLeft
+} from 'lucide-react';
 
-export default function AddEntry() {
-  const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
-  const [editLink, setEditLink] = useState("");
+export default function JoinForm() {
+  const router = useRouter();
+  const [uploading, setUploading] = useState(false);
+  const [previews, setPreviews] = useState<{ p1: string | null; p2: string | null }>({
+    p1: null,
+    p2: null,
+  });
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  // Handle image preview before uploading
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, slot: 'p1' | 'p2') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviews((prev) => ({ ...prev, [slot]: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setStatus('loading');
-    
+    setUploading(true);
+
     const formData = new FormData(e.currentTarget);
-    const contact = formData.get('contact_number') as string;
+    const file1 = formData.get('photo1') as File;
+    const file2 = formData.get('photo2') as File;
 
-    // 1. Upload Photo
-    const file1 = (e.currentTarget.elements.namedItem('photo1') as HTMLInputElement).files?.[0];
-    let photo1Url = "";
+    try {
+      let url1 = "";
+      let url2 = "";
 
-    if (file1) {
-      // Replace spaces and special chars in filename
-      const cleanFileName = `${contact.replace(/\s+/g, '-')}-${Date.now()}`;
-      
-      const { data, error: uploadError } = await supabase.storage.from('user-photos').upload(cleanFileName, file1);
-    
-      if (uploadError) {
-        console.error("Upload Error:", uploadError);
-        alert("Image upload failed: " + uploadError.message);
-        setStatus('idle');
-        return;
+      // 1. Upload Primary Photo
+      if (file1 && file1.size > 0) {
+        //const cleanFileName1 = `${contact.replace(/\s+/g, '-')}-${Date.now()-1-${photo1.name}`;
+        const path1 = `${Date.now()}_main_${file1.name}`;
+        await supabase.storage.from('user-photos').upload(path1, file1);
+        url1 = supabase.storage.from('user-photos').getPublicUrl(path1).data.publicUrl;
       }
-    
-      if (data) {
-        // Get the Public URL
-        const { data: publicData } = supabase.storage
-          .from('user-photos')
-          .getPublicUrl(data.path);
-        photo1Url = publicData.publicUrl;
+
+      // 2. Upload Secondary Photo
+      if (file2 && file2.size > 0) {
+        const path2 = `${Date.now()}_sec_${file2.name}`;
+        await supabase.storage.from('user-photos').upload(path2, file2);
+        url2 = supabase.storage.from('user-photos').getPublicUrl(path2).data.publicUrl;
       }
-    }
 
-    // 2. Save All Data to Supabase
-    const { data, error } = await supabase.from('entries').insert([{
-      name: formData.get('name'),
-      dob: formData.get('dob'),
-      time: formData.get('time'),
-      place: formData.get('place'),
-      education: formData.get('education'),
-      occupation: formData.get('occupation'),
-      father_name: formData.get('father_name'),
-      mother_name: formData.get('mother_name'),
-      business: formData.get('business'),
-      contact_number: contact,
-      photo_1: photo1Url
-    }]).select();
+      // 3. Insert Data to Supabase
+      const { error } = await supabase.from('entries').insert([{
+        name: formData.get('name'),
+        dob: formData.get('dob'),
+        time: formData.get('time'),
+        place: formData.get('place'),
+        education: formData.get('education'),
+        occupation: formData.get('occupation'),
+        business: formData.get('business'),
+        father_name: formData.get('father_name'),
+        mother_name: formData.get('mother_name'),
+        contact_number: formData.get('contact_number'),
+        photo_1: url1,
+        photo_2: url2,
+        edit_token: crypto.randomUUID(), // Secret key for future editing
+      }]);
 
-    if (error) {
+      if (error) throw error;
+
+      alert("Profile Created Successfully!");
+      router.push('/');
+    } catch (error: any) {
       alert("Error: " + error.message);
-      setStatus('idle');
-    } else {
-      setEditLink(`${window.location.origin}/edit?token=${data[0].edit_token}`);
-      setStatus('success');
+    } finally {
+      setUploading(false);
     }
-  }
-
-  if (status === 'success') {
-    return (
-      <div className="max-w-md mx-auto mt-20 p-8 bg-white rounded-[2.5rem] shadow-2xl text-center border border-slate-100">
-        <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-10 h-10">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-          </svg>
-        </div>
-        <h2 className="text-2xl font-black text-slate-800">Registration Successful!</h2>
-        <p className="mt-2 text-slate-500">Keep this secret link to edit your profile later. Do not share it.</p>
-        
-        <div className="mt-6 p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-3">
-          <code className="text-[10px] text-slate-600 truncate flex-1 font-mono">
-            {editLink}
-          </code>
-          <button 
-            onClick={() => {
-              navigator.clipboard.writeText(editLink);
-              alert("Link copied to clipboard!");
-            }}
-            className="bg-indigo-600 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 active:scale-95 transition-all"
-          >
-            Copy
-          </button>
-        </div>
-
-        <div className="mt-8 flex flex-col gap-3">
-          <button 
-            onClick={() => window.location.href = '/'} 
-            className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg"
-          >
-            Go to Directory Home
-          </button>
-          <button 
-            onClick={() => setStatus('idle')} 
-            className="text-slate-400 text-sm font-bold hover:text-slate-600"
-          >
-            Add Another Entry
-          </button>
-        </div>
-      </div>
-    );
-  }
+  };
 
   return (
-    <div className="max-w-xl mx-auto my-10 p-8 bg-white rounded-[2.5rem] shadow-2xl border border-slate-100">
-      <h1 className="text-3xl font-black text-slate-800 mb-2">Join Directory</h1>
-      <p className="text-slate-500 mb-8">Fill in all details to create your community card.</p>
-      
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Personal Details */}
-        <input name="name" placeholder="Full Name" required className="w-full p-4 bg-slate-50 rounded-2xl border-none ring-1 ring-slate-200 focus:ring-2 focus:ring-indigo-500" />
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 ml-2 uppercase">Date of Birth</label>
-            <input name="dob" type="date" required className="w-full p-4 bg-slate-50 rounded-2xl border-none ring-1 ring-slate-200" />
+    <div className="min-h-screen bg-[#FAFAFA] pb-20">
+      {/* HEADER */}
+      <nav className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-slate-100 px-6 py-4">
+        <div className="max-w-2xl mx-auto flex items-center gap-4">
+          <button onClick={() => router.back()} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+            <ChevronLeft size={24} />
+          </button>
+          <h1 className="text-xl font-black tracking-tight">Create Profile</h1>
+        </div>
+      </nav>
+
+      <main className="max-w-2xl mx-auto px-6 py-10">
+        <form onSubmit={handleSubmit} className="space-y-10">
+          
+          {/* PHOTO UPLOAD SECTION */}
+          <section className="space-y-4">
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Profile Photos</label>
+            <div className="grid grid-cols-2 gap-4">
+              <PhotoSlot 
+                id="photo1" 
+                label="Main Photo" 
+                preview={previews.p1} 
+                onChange={(e) => handleFileChange(e, 'p1')} 
+                required 
+              />
+              <PhotoSlot 
+                id="photo2" 
+                label="Life / Work" 
+                preview={previews.p2} 
+                onChange={(e) => handleFileChange(e, 'p2')} 
+              />
+            </div>
+          </section>
+
+          {/* BASIC INFORMATION */}
+          <section className="space-y-4">
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Personal Details</label>
+            <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-4">
+              <InputField icon={<User size={18}/>} name="name" placeholder="Full Name" required />
+              <div className="grid grid-cols-2 gap-4">
+                <InputField icon={<Calendar size={18}/>} name="dob" type="date" required />
+                <InputField icon={<Clock size={18}/>} name="time" type="time" required />
+              </div>
+              <InputField icon={<MapPin size={18}/>} name="place" placeholder="Birth City" required />
+              <InputField icon={<GraduationCap size={18}/>} name="education" placeholder="Highest Education" />
+            </div>
+          </section>
+
+          {/* WORK & FAMILY */}
+          <section className="space-y-4">
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Work & Family</label>
+            <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-4">
+              <InputField icon={<Briefcase size={18}/>} name="occupation" placeholder="Current Occupation" required />
+              <InputField icon={<Briefcase size={18}/>} name="business" placeholder="Business Name (Optional)" />
+              <div className="pt-4 border-t border-slate-50 space-y-4">
+                <InputField icon={<Heart size={18}/>} name="father_name" placeholder="Father's Name" />
+                <InputField icon={<Heart size={18}/>} name="mother_name" placeholder="Mother's Name" />
+              </div>
+            </div>
+          </section>
+
+          {/* CONTACT */}
+          <section className="space-y-4">
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Contact</label>
+            <div className="bg-emerald-50 p-6 rounded-[2.5rem] border border-emerald-100">
+              <InputField icon={<CheckCircle size={18} className="text-emerald-500"/>} name="contact_number" placeholder="WhatsApp / Mobile Number" type="tel" required />
+            </div>
+          </section>
+
+          {/* SUBMIT BUTTON */}
+          <button 
+            type="submit" 
+            disabled={uploading}
+            className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black text-lg shadow-xl shadow-slate-200 flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {uploading ? (
+              <> <Loader2 className="animate-spin" size={24} /> Processing... </>
+            ) : (
+              "Publish Profile"
+            )}
+          </button>
+        </form>
+      </main>
+    </div>
+  );
+}
+
+// UI HELPER: Photo Upload Box
+function PhotoSlot({ id, label, preview, onChange, required }: any) {
+  return (
+    <div className="relative h-56 bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200 overflow-hidden group hover:border-emerald-400 transition-all">
+      {preview ? (
+        <img src={preview} alt="preview" className="w-full h-full object-cover" />
+      ) : (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+          <div className="p-4 bg-slate-50 rounded-2xl text-slate-400 group-hover:text-emerald-500 transition-colors">
+            <Camera size={28} />
           </div>
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 ml-2 uppercase">Time of Birth</label>
-            <input name="time" type="time" required className="w-full p-4 bg-slate-50 rounded-2xl border-none ring-1 ring-slate-200" />
-          </div>
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</span>
         </div>
+      )}
+      <input 
+        type="file" 
+        name={id} 
+        onChange={onChange} 
+        accept="image/*" 
+        required={required}
+        className="absolute inset-0 opacity-0 cursor-pointer" 
+      />
+    </div>
+  );
+}
 
-        <input name="place" placeholder="Place / City of Birth" required className="w-full p-4 bg-slate-50 rounded-2xl border-none ring-1 ring-slate-200" />
-        
-        {/* Education & Work */}
-        <input name="education" placeholder="Education (e.g. B.Tech, MBA)" className="w-full p-4 bg-slate-50 rounded-2xl border-none ring-1 ring-slate-200" />
-        <input name="occupation" placeholder="Occupation / Job Title" required className="w-full p-4 bg-slate-50 rounded-2xl border-none ring-1 ring-slate-200" />
-        <input name="business" placeholder="Business Name (If any)" className="w-full p-4 bg-slate-50 rounded-2xl border-none ring-1 ring-slate-200" />
-
-        {/* Family Details */}
-        <div className="grid grid-cols-2 gap-4">
-          <input name="father_name" placeholder="Father's Name" className="w-full p-4 bg-slate-50 rounded-2xl border-none ring-1 ring-slate-200" />
-          <input name="mother_name" placeholder="Mother's Name" className="w-full p-4 bg-slate-50 rounded-2xl border-none ring-1 ring-slate-200" />
-        </div>
-
-        {/* Contact (Locked Field) */}
-        <input name="contact_number" placeholder="Mobile Number (Used for Login)" required className="w-full p-4 bg-slate-50 rounded-2xl border-none ring-1 ring-slate-200" />
-        
-        {/* Photo Upload */}
-        <div className="p-6 bg-indigo-50 rounded-3xl border-2 border-dashed border-indigo-200">
-          <p className="text-sm font-bold text-indigo-600 mb-3">Profile Photo</p>
-          <input name="photo1" type="file" accept="image/*" required className="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-indigo-600 file:text-white" />
-        </div>
-
-        <button type="submit" disabled={status === 'loading'} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all">
-          {status === 'loading' ? 'Saving Your Profile...' : 'Create My Card'}
-        </button>
-      </form>
+// UI HELPER: Minimal Input
+function InputField({ icon, ...props }: any) {
+  return (
+    <div className="relative flex items-center group">
+      <div className="absolute left-4 text-slate-300 group-focus-within:text-emerald-500 transition-colors">
+        {icon}
+      </div>
+      <input 
+        className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none border border-transparent focus:border-emerald-200 focus:bg-white transition-all text-slate-700 font-medium placeholder:text-slate-300"
+        {...props} 
+      />
     </div>
   );
 }
