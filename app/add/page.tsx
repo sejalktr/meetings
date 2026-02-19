@@ -115,7 +115,7 @@ export default function JoinForm() {
             <PhotoInput id="photo2" label="Secondary" preview={previews.p2} onChange={(e) => handleFileChange(e, 'p2')} />
           </section>
 
-          {/* PERSONAL DETAILS (Includes Occupation) */}
+          {/* PERSONAL DETAILS */}
           <section className="space-y-4">
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Personal Details</h3>
             <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-4">
@@ -132,7 +132,7 @@ export default function JoinForm() {
 
           {/* FAMILY & ROOTS */}
           <section className="space-y-4">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Roots & Business</h3>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Family & Business</h3>
             <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-4">
               <InputField icon={<Heart size={18}/>} name="father_name" placeholder="Father's Name" />
               <InputField icon={<Heart size={18}/>} name="mother_name" placeholder="Mother's Name" />
@@ -240,21 +240,6 @@ function PhotoSlot({ id, label, preview, onChange, required }: any) {
         accept="image/*" 
         required={required}
         className="absolute inset-0 opacity-0 cursor-pointer" 
-      />
-    </div>
-  );
-}
-
-// UI HELPER: Minimal Input
-function InputField({ icon, ...props }: any) {
-  return (
-    <div className="relative flex items-center group">
-      <div className="absolute left-4 text-slate-300 group-focus-within:text-emerald-500 transition-colors">
-        {icon}
-      </div>
-      <input 
-        className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl outline-none border border-transparent focus:border-emerald-200 focus:bg-white transition-all text-slate-700 font-medium placeholder:text-slate-300"
-        {...props} 
       />
     </div>
   );
