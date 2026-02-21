@@ -159,7 +159,9 @@ export default function JoinForm() {
 
           {/* CONTACT */}
           <section className="space-y-4">
+            <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-4">
              <InputField icon={<Phone size={18} className="text-emerald-500" />} name="contact_number" placeholder="WhatsApp / Mobile Number *" type="tel" />
+            </div>
           </section>
 
           <button 
