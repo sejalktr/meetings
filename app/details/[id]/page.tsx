@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   MapPin, Phone, Briefcase, ArrowLeft, Calendar, 
-  Clock, Heart, Sparkles, Loader2, Share2, UserCircle2
+  Clock, Heart, Sparkles, Loader2, Share2, UserCircle2, GraduationCap
 } from 'lucide-react';
 
 export default function DetailPage() {
