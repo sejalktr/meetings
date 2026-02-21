@@ -88,10 +88,11 @@ export default function DetailPage() {
           </div>
 
           {/* META GRID */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3"> {/* Increased grid to 5 for desktop */}
             <MetaBox icon={<Calendar size={18}/>} label="Birth Date" value={person.dob} />
             <MetaBox icon={<Clock size={18}/>} label="Time" value={person.time || "--:--"} />
             <MetaBox icon={<MapPin size={18}/>} label="Birth Place" value={person.place} />
+            <MetaBox icon={<GraduationCap size={18}/>} label="Education" value={person.education || "N/A"} />
             <MetaBox icon={<Sparkles size={18}/>} label="Age" value={`${calculateAge(person.dob)} Years`} />
           </div>
         </div>
