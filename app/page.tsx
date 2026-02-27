@@ -1,3 +1,22 @@
+export default function Home() {
+  // --- PASTE THE DEBUG CODE HERE ---
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!url || !key) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-red-50 p-6">
+        <div className="bg-white p-8 rounded-3xl shadow-xl border border-red-100 text-center max-w-sm">
+          <h1 className="text-red-500 font-black text-2xl mb-2">Connection Error</h1>
+          <p className="text-slate-600 text-sm">
+            Vercel is not reading your Supabase keys. Please check your Environment Variables in the Vercel Dashboard.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  // --- END OF DEBUG CODE ---
+  
 "use client";
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -134,4 +153,7 @@ export default function ListingPage() {
       </main>
     </div>
   );
+}
+
+// ... rest of your existing Home page code (useEffect, return, etc.)
 }
