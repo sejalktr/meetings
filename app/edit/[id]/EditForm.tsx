@@ -28,13 +28,13 @@ export function EditForm({ initialData, token }: { initialData: any, token: stri
     const filePath = `profile-photos/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
-      .from('photos')
+      .from('user-photos')
       .upload(filePath, file);
 
     if (uploadError) {
       alert("Upload failed: " + uploadError.message);
     } else {
-      const { data } = supabase.storage.from('photos').getPublicUrl(filePath);
+      const { data } = supabase.storage.from('user-photos').getPublicUrl(filePath);
       setPhotos(prev => ({ ...prev, [key]: data.publicUrl }));
     }
     setUploading(null);
@@ -80,7 +80,7 @@ export function EditForm({ initialData, token }: { initialData: any, token: stri
             <button onClick={() => router.push('/')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
               <ArrowLeft size={20} />
             </button>
-            <h1 className="text-xl font-black text-slate-800 uppercase italic tracking-tighter">Edit Directory</h1>
+            <h1 className="text-xl font-black text-slate-800 uppercase">Edit Profile</h1>
           </div>
           {saving && <Loader2 className="animate-spin text-indigo-600" size={20} />}
         </div>
