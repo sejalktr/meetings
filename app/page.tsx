@@ -1,3 +1,9 @@
+  
+"use client";
+import React, { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Search, MapPin, Plus, Sparkles, Calendar, Clock, ArrowRight } from 'lucide-react';
+
 export default function Home() {
   // --- PASTE THE DEBUG CODE HERE ---
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -16,11 +22,6 @@ export default function Home() {
     );
   }
   // --- END OF DEBUG CODE ---
-  
-"use client";
-import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Search, MapPin, Plus, Sparkles, Calendar, Clock, ArrowRight } from 'lucide-react';
 
 export default function ListingPage() {
   const [entries, setEntries] = useState<any[]>([]);
