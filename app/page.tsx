@@ -10,12 +10,8 @@ export default function ListingPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-   // --- PASTE THE DEBUG CODE HERE ---
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  // 1. CONNECTION CHECKER (The "Red Box" Logic)
-  // 1. CONNECTION CHECKER (The "Red Box" Logic)
+  // --- THE DEBUG CODE HERE ---
+  // CONNECTION CHECKER (The "Red Box" Logic)
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
