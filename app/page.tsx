@@ -1,33 +1,45 @@
-  
 "use client";
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Search, MapPin, Plus, Sparkles, Calendar, Clock, ArrowRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
-export default function Home() {
-  // --- PASTE THE DEBUG CODE HERE ---
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  
-  if (!url || !key) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-red-50 p-6">
-        <div className="bg-white p-8 rounded-3xl shadow-xl border border-red-100 text-center max-w-sm">
-          <h1 className="text-red-500 font-black text-2xl mb-2">Connection Error</h1>
-          <p className="text-slate-600 text-sm">
-            Vercel is not reading your Supabase keys. Please check your Environment Variables in the Vercel Dashboard.
-          </p>
-        </div>
-      </div>
-    );
-  }
-  // --- END OF DEBUG CODE ---
 
 export default function ListingPage() {
   const [entries, setEntries] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
+   // --- PASTE THE DEBUG CODE HERE ---
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // 1. CONNECTION CHECKER (The "Red Box" Logic)
+  // 1. CONNECTION CHECKER (The "Red Box" Logic)
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !key) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-red-50 p-6 font-sans">
+        <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-red-100 text-center max-w-sm">
+          <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Sparkles size={30} />
+          </div>
+          <h1 className="text-red-900 font-black text-2xl mb-2 tracking-tight">Setup Required</h1>
+          <p className="text-slate-500 text-sm leading-relaxed mb-6">
+            Your Supabase keys are missing. Please add them to Vercel Environment Variables and redeploy.
+          </p>
+          <div className="text-[10px] font-mono bg-slate-50 p-3 rounded-xl text-slate-400 text-left">
+            NEXT_PUBLIC_SUPABASE_URL: {url ? "✅ Found" : "❌ Missing"}<br/>
+            NEXT_PUBLIC_SUPABASE_ANON_KEY: {key ? "✅ Found" : "❌ Missing"}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  // --- END OF DEBUG CODE ---
+  
   const calculateAge = (dobString: string) => {
     if (!dobString) return 0;
     const today = new Date();
@@ -154,7 +166,4 @@ export default function ListingPage() {
       </main>
     </div>
   );
-}
-
-// ... rest of your existing Home page code (useEffect, return, etc.)
 }
