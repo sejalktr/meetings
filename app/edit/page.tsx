@@ -1,13 +1,22 @@
 "use client";
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState, Suspense, use } from 'react'; // Added 'use' hook
 import { supabase } from '@/lib/supabase';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Save, ArrowLeft, Camera, User, Briefcase, MapPin } from 'lucide-react';
 
-function EditForm() {
+// 1. Define the Page Props for Next.js 15
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function EditForm({ params }: PageProps) {
+  // 2. Unwrap the ID from the URL path (the [id] folder)
+  const resolvedParams = use(params);
+  const id = resolvedParams.id;
+
   const params = useSearchParams();
   const router = useRouter();
-  const token = params.get('token');
+  const token = params.get('id');
   
   const [formData, setFormData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -15,18 +24,20 @@ function EditForm() {
 
   useEffect(() => {
     async function loadData() {
-      if (!token) return;
+      if (!id) return;
+
+      // We query by 'edit_token' using the 'id' from the URL
       const { data, error } = await supabase
         .from('entries')
         .select('*')
-        .eq('edit_token', token)
+        .eq('edit_token', id)
         .single();
       
       if (data) setFormData(data);
       setLoading(false);
     }
     loadData();
-  }, [token]);
+  }, [id]);
 
     
   async function handleUpdate(e: React.FormEvent<HTMLFormElement>) {
@@ -54,7 +65,7 @@ function EditForm() {
     const { error } = await supabase
       .from('entries')
       .update(updates)
-      .eq('edit_token', token);
+      .eq('edit_token', id);
 
     setSaving(false);
     
@@ -70,17 +81,18 @@ function EditForm() {
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-4">
       <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-      <p className="text-slate-500 font-medium">Loading your details...</p>
+      <p className="text-slate-500 font-medium">Fetching your Profile...</p>
     </div>
   );
 
   if (!formData) return (
-    <div className="text-center mt-20">
+    <div className="text-center mt-20 p-6">
       <h2 className="text-xl font-bold text-red-500">Invalid or Expired Edit Link</h2>
-      <button onClick={() => router.push('/')} className="mt-4 text-indigo-600 font-bold underline">Go Back Home</button>
+      <p className="text-slate-500 text-sm mt-2">We couldn't find a profile matching this URL.</p>
+      <button onClick={() => router.push('/')} className="mt-6 px-8 py-3 bg-slate-900 text-white rounded-2xl font-bold">Go Home</button>
     </div>
   );
-
+      
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
       {/* HEADER */}
