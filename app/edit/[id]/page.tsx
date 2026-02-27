@@ -2,7 +2,10 @@ import { supabase } from '@/lib/supabase';
 import { EditForm } from './EditForm';
 import { Suspense } from 'react';
 
+// 1. Force the page to be dynamic (never cached)
 export const dynamic = 'force-dynamic';
+// 2. Ensure the fetch doesn't use the cache
+export const revalidate = 0;
 
 export default async function EditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -18,7 +21,7 @@ export default async function EditPage({ params }: { params: Promise<{ id: strin
     );
   
   return (
-    <Suspense fallback={<div className="p-20 text-center font-black italic text-slate-200 uppercase tracking-widest">Initializing your details ...</div>}>
+    <Suspense fallback={<div className="p-20 text-center font-black italic text-slate-200 uppercase tracking-widest">Loading your details ...</div>}>
       <EditForm initialData={entry} token={id} />
     </Suspense>
   );
