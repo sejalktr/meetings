@@ -72,16 +72,17 @@ export default function JoinForm() {
 
       // 1. Photo Uploads
       if (file1 && file1.size > 0) {
-        const path1 = `${Date.now()}_1_${file1.name}`;
+        const path1 = `profile-photos/${Date.now()}_1_${file1.name}`; 
         await supabase.storage.from('user-photos').upload(path1, file1);
         url1 = supabase.storage.from('user-photos').getPublicUrl(path1).data.publicUrl;
       }
+      
       if (file2 && file2.size > 0) {
-        const path2 = `${Date.now()}_2_${file2.name}`;
+        const path2 = `profile-photos/${Date.now()}_2_${file2.name}`;
         await supabase.storage.from('user-photos').upload(path2, file2);
         url2 = supabase.storage.from('user-photos').getPublicUrl(path2).data.publicUrl;
       }
-
+      
       // 2. Database Insert
       const { error } = await supabase.from('entries').insert([{
         name: formData.get('name'),
