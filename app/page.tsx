@@ -20,9 +20,21 @@ export default function ListingPage() {
 
   useEffect(() => {
     async function fetchData() {
-      const { data } = await supabase.from('entries').select('*').order('name', { ascending: true });
-      if (data) setEntries(data);
-      setLoading(false);
+      try {
+        const { data, error } = await supabase.from('entries').select('*').order('name', { ascending: true });
+        
+        if (error) {
+          console.error("Supabase Fetch Error:", error.message);
+          setLoading(false);
+          return;
+        }
+  
+        if (data) setEntries(data);
+      } catch (err) {
+        console.error("Unexpected Error:", err);
+      } finally {
+        setLoading(false);
+      }
     }
     fetchData();
   }, []);
