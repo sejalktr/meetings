@@ -36,6 +36,16 @@ export default function AddProfile() {
       alert("Please provide a parent name.");
       return;
     }
+
+    // CONTACT NUMBER VALIDATION (10 Digits)
+    const contactNo = formData.get('contact_number') as string;
+    // This regex checks if the string contains exactly 10 digits
+    const phoneRegex = /^[0-9]{10}$/;
+    
+    if (!phoneRegex.test(contactNo)) {
+      alert("Please enter a valid 10-digit contact number.");
+      return;
+    }
     
     setLoading(true);
 
@@ -173,15 +183,15 @@ export default function AddProfile() {
           {/* PERSONAL SECTION */}
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-5">
             <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Personal Info</h3>
-            <InputField label="Full Name *" name="name" icon={<User size={16}/>} />
+            <InputField label="Full Name *" name="name" icon={<User size={16}/>} placeholder="Full Name *" />
             <div className="grid grid-cols-2 gap-4">
-              <InputField label="Date of Birth *" name="dob" type="date" />
-              <InputField label="Time of Birth" name="time" type="time" />
+              <InputField icon={<Calendar size={18}/>} label="Date of Birth *" name="dob" type="date" />
+              <InputField icon={<Clock size={18}/>} label="Time of Birth" name="time" type="time" />
             </div>
-            <InputField label="Birth Place *" name="place" icon={<MapPin size={16}/>} />
+            <InputField label="Birth Place *" name="place" icon={<MapPin size={16}/>} placeholder="Birth City *" />
             <InputField label="Gotra" name="gotra" />
-            <InputField label="Education *" name="education" />
-            <InputField label="Occupation *" name="occupation" icon={<Briefcase size={16}/>} />
+            <InputField label="Education *" name="education" placeholder="Highest Education (Degree)" />
+            <InputField label="Occupation *" name="occupation" icon={<Briefcase size={16}/>} placeholder="Current Occupation *" />
             <InputField label="Hobbies" name="hobbies" />
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 ml-5 uppercase">Describe Yourself</label>
@@ -192,21 +202,26 @@ export default function AddProfile() {
           {/* FAMILY SECTION */}
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-5">
             <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Family & Contact</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <InputField label="Father's Name" name="father_name" icon={<Heart size={14}/>} />
-              <InputField label="Mother's Name" name="mother_name" icon={<Heart size={14}/>} />
+
+            <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-4">
+              <InputField icon={<Heart size={18}/>} name="father_name" placeholder="Father's Name" />
+              <InputField icon={<Heart size={18}/>} name="mother_name" placeholder="Mother's Name" />
+              <InputField icon={<Sparkles size={18}/>} name="business" placeholder="Family Business Name" />
             </div>
+              
             <InputField label="Business Name" name="business" />
-            <InputField label="Primary Contact *" name="contact_number" type="tel" />
-            <div className="grid grid-cols-2 gap-4">
-              <InputField label="Family Contact 1" name="family_contact_1" />
-              <InputField label="Family Contact 2" name="family_contact_2" />
+            <InputField label="Primary Contact *" name="contact_number" type="tel" maxLength={10} placeholder="e.g. 9876543210"/>
+            
+            <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-4">
+              <InputField label="Family Contact 1" name="family_contact_1" placeholder="Family Contact 1"/>
+              <InputField label="Family Contact 2" name="family_contact_2" placeholder="Family Contact 2"/>
             </div>
+            
           </div>
 
           <button disabled={loading} className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase tracking-tight shadow-xl flex items-center justify-center gap-3 hover:bg-indigo-600 transition-all disabled:opacity-50">
             {loading ? <Loader2 className="animate-spin" /> : <Check size={20} />}
-            {loading ? "Creating Profile..." : "Submit Registration"}
+            {loading ? "Creating Profile..." : "Create Profile"}
           </button>
         </form>
       </div>
