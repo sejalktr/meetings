@@ -46,6 +46,8 @@ export default function AddProfile() {
         .select('name, dob, father_name, mother_name, contact_number')
         .or(`contact_number.eq.${formData.get('contact_number')}, name.eq.${formData.get('name')}`);
 
+      if (checkError) throw checkError;
+      
       if (existing && existing.length > 0) {
         const isExactMatch = existing.find(ex => 
           ex.contact_number === formData.get('contact_number') || 
@@ -59,7 +61,8 @@ export default function AddProfile() {
           setLoading(false);
           return;
         }
-
+      }
+      
       const token = crypto.randomUUID();
       let urls = { p1: '', p2: '' };
 
@@ -220,5 +223,5 @@ function InputField({ label, name, type = "text", icon }: any) {
         <input name={name} type={type} className={`w-full ${icon ? 'pl-12' : 'pl-5'} pr-5 py-4 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-slate-700 font-bold text-sm outline-none transition-all`} />
       </div>
     </div>
-  )
+  );
 }
