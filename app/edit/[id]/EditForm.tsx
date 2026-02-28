@@ -8,7 +8,7 @@ import {
   Copy, ExternalLink, Sparkles, Phone, UserPlus, Share2, Save
 } from 'lucide-react';
 
-export default function EditProfile() {
+export default function EditForm() {
   const router = useRouter();
   const params = useParams();
   const token = params.token as string;
