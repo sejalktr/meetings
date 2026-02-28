@@ -1,241 +1,224 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { 
-  Camera, CheckCircle, Loader2, User, MapPin, 
-  Briefcase, Calendar, Clock, Heart, ChevronLeft, 
-  Copy, Share2, Sparkles, GraduationCap, Phone
-} from 'lucide-react';
+import { User, Briefcase, MapPin, Heart, Camera, Check, Loader2, Copy, ExternalLink, Share2, PartyPopper } from 'lucide-react';
 
-export default function JoinForm() {
+export default function AddProfile() {
   const router = useRouter();
-  const [uploading, setUploading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [editLink, setEditLink] = useState("");
-  
-  const [previews, setPreviews] = useState<{ p1: string | null; p2: string | null }>({
-    p1: null, p2: null,
-  });
+  const [loading, setLoading] = useState(false);
+  const [createdData, setCreatedData] = useState<{ token: string } | null>(null);
+  const [photos, setPhotos] = useState<{ p1: File | null, p2: File | null }>({ p1: null, p2: null });
 
-  // Handle live image preview
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, slot: 'p1' | 'p2') => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setPreviews(prev => ({ ...prev, [slot]: reader.result as string }));
-      reader.readAsDataURL(file);
-    }
+  const editLink = createdData ? `${window.location.origin}/edit/${createdData.token}` : '';
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(editLink);
+    alert("Link copied to clipboard!");
   };
 
-  // Share Edit Link Functionality
-  const handleShareEditLink = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'My Profile Edit Link',
-          text: 'Save this link to update your profile in the future!',
-          url: editLink,
-        });
-      } catch (err) { console.log('Share failed', err); }
-    } else {
-      window.open(`https://wa.me/?text=Save%20this%20link%20to%20edit%20your%20profile:%20${encodeURIComponent(editLink)}`, '_blank');
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    
-    // --- VALIDATION ---
-    const requiredFields = ['name', 'dob', 'place', 'education', 'occupation', 'contact_number'];
-    const emptyFields = requiredFields.filter(field => !formData.get(field));
-    
-    if (emptyFields.length > 0) {
-      alert(`Please fill in the following required fields: ${emptyFields.join(', ')}`);
-      return;
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    // Validations
+    const required = ['name', 'dob', 'place', 'education', 'occupation', 'contact_number'];
+    for (const field of required) {
+      if (!formData.get(field)) {
+        alert(`Please fill in the required field: ${field.replace('_', ' ')}`);
+        return;
+      }
     }
 
-    if (!formData.get('photo1')) {
-      alert("Please upload at least the Primary Photo.");
+    // Must have at least one parent name
+    if (!formData.get('father_name') && !formData.get('mother_name')) {
+      alert("Please provide a parent name.");
       return;
     }
-
-    setUploading(true);
+    
+    setLoading(true);
 
     try {
-      const file1 = formData.get('photo1') as File;
-      const file2 = formData.get('photo2') as File;
-      const token = crypto.randomUUID();
-      let url1 = "";
-      let url2 = "";
+      // 2. UNIQUE CONTACT & DUPLICATE CHECK
+      const { data: existing } = await supabase
+        .from('entries')
+        .select('name, dob, father_name, mother_name, contact_number')
+        .or(`contact_number.eq.${formData.get('contact_number')}, name.eq.${formData.get('name')}`);
 
-      // 1. Photo Uploads
-      if (file1 && file1.size > 0) {
-        const path1 = `profile-photos/${Date.now()}_1_${file1.name}`; 
-        await supabase.storage.from('user-photos').upload(path1, file1);
-        url1 = supabase.storage.from('user-photos').getPublicUrl(path1).data.publicUrl;
+      if (existing && existing.length > 0) {
+        const isExactMatch = existing.find(ex => 
+          ex.contact_number === formData.get('contact_number') || 
+          (ex.name === formData.get('name') && 
+           ex.dob === formData.get('dob') && 
+           (ex.father_name === formData.get('father_name') || ex.mother_name === formData.get('mother_name')))
+        );
+
+        if (isExactMatch) {
+          alert("A profile with these details or this contact number already exists.");
+          setLoading(false);
+          return;
+        }
+
+      const token = crypto.randomUUID();
+      let urls = { p1: '', p2: '' };
+
+      for (const key of ['p1', 'p2'] as const) {
+        const file = photos[key];
+        if (file) {
+          const path = `profile-photos/${token}-${key}-${Date.now()}`;
+          const { error: upErr } = await supabase.storage.from('user-photos').upload(path, file);
+          if (upErr) throw upErr;
+          urls[key] = supabase.storage.from('user-photos').getPublicUrl(path).data.publicUrl;
+        }
       }
-      
-      if (file2 && file2.size > 0) {
-        const path2 = `profile-photos/${Date.now()}_2_${file2.name}`;
-        await supabase.storage.from('user-photos').upload(path2, file2);
-        url2 = supabase.storage.from('user-photos').getPublicUrl(path2).data.publicUrl;
-      }
-      
-      // 2. Database Insert
-      const { error } = await supabase.from('entries').insert([{
+
+      const { error: insErr } = await supabase.from('entries').insert([{
         name: formData.get('name'),
         dob: formData.get('dob'),
         time: formData.get('time'),
         place: formData.get('place'),
         education: formData.get('education'),
         occupation: formData.get('occupation'),
-        business: formData.get('business'),
+        gotra: formData.get('gotra'),
+        hobbies: formData.get('hobbies'),
+        bio: formData.get('bio'),
         father_name: formData.get('father_name'),
         mother_name: formData.get('mother_name'),
+        business: formData.get('business'),
         contact_number: formData.get('contact_number'),
-        photo_1: url1,
-        photo_2: url2,
+        family_contact_1: formData.get('family_contact_1'),
+        family_contact_2: formData.get('family_contact_2'),
+        photo_1: urls.p1,
+        photo_2: urls.p2,
         edit_token: token
       }]);
 
-      if (error) throw error;
-
-      setEditLink(`${window.location.origin}/edit/${token}`);
-      setShowSuccess(true);
-
-    } catch (error: any) {
-      alert(error.message);
+      if (insErr) throw insErr;
+      setCreatedData({ token });
+      
+    } catch (err: any) {
+      alert(err.message);
     } finally {
-      setUploading(false);
+      setLoading(false);
     }
-  };
+  }
 
-  return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-20 font-sans">
-      {/* NAVBAR */}
-      <nav className="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-100 px-6 py-4">
-        <div className="max-w-2xl mx-auto flex items-center gap-4">
-          <button onClick={() => router.back()} className="p-2 hover:bg-slate-50 rounded-full transition-all">
-            <ChevronLeft size={24} />
-          </button>
-          <h1 className="text-xl font-black tracking-tighter uppercase">Join Network</h1>
-        </div>
-      </nav>
-
-      <main className="max-w-2xl mx-auto px-6 py-10">
-        <form onSubmit={handleSubmit} className="space-y-10">
+  // SUCCESS SCREEN
+  if (createdData) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
+        <div className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl border border-slate-100 text-center space-y-8 animate-in zoom-in duration-300">
+          <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto">
+            <PartyPopper size={40} />
+          </div>
           
-          {/* IMAGE SECTION */}
-          <section className="grid grid-cols-2 gap-4">
-            <PhotoInput id="photo1" label="Primary Photo" preview={previews.p1} onChange={(e) => handleFileChange(e, 'p1')} />
-            <PhotoInput id="photo2" label="Secondary" preview={previews.p2} onChange={(e) => handleFileChange(e, 'p2')} />
-          </section>
+          <div>
+            <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Profile Created!</h2>
+            <p className="text-slate-500 text-sm mt-2">Keep this link safe to edit your profile in the future.</p>
+          </div>
 
-          {/* PERSONAL & PROFESSIONAL */}
-          <section className="space-y-4">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Personal Details</h3>
-            <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-4">
-              <InputField icon={<User size={18}/>} name="name" placeholder="Full Name *" />
-              <div className="grid grid-cols-2 gap-4">
-                <InputField icon={<Calendar size={18}/>} name="dob" type="date" />
-                <InputField icon={<Clock size={18}/>} name="time" type="time" />
-              </div>
-              <InputField icon={<MapPin size={18}/>} name="place" placeholder="Birth City *" />
-              <InputField icon={<GraduationCap size={18}/>} name="education" placeholder="Highest Education (Degree)" />
-              <InputField icon={<Briefcase size={18}/>} name="occupation" placeholder="Current Occupation *" />
-            </div>
-          </section>
+          <div className="bg-slate-50 p-4 rounded-2xl border border-dashed border-slate-200 break-all text-xs font-bold text-indigo-600">
+            {editLink}
+          </div>
 
-          {/* ROOTS & FAMILY */}
-          <section className="space-y-4">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Roots & Business</h3>
-            <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-4">
-              <InputField icon={<Heart size={18}/>} name="father_name" placeholder="Father's Name" />
-              <InputField icon={<Heart size={18}/>} name="mother_name" placeholder="Mother's Name" />
-              <InputField icon={<Sparkles size={18}/>} name="business" placeholder="Family Business Name" />
-            </div>
-          </section>
-
-          {/* CONTACT */}
-          <section className="space-y-4">
-            <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-4">
-             <InputField icon={<Phone size={18} className="text-emerald-500" />} name="contact_number" placeholder="WhatsApp / Mobile Number *" type="tel" />
-            </div>
-          </section>
-
-          <button 
-            type="submit" 
-            disabled={uploading}
-            className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black text-lg flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all shadow-xl shadow-slate-200"
-          >
-            {uploading ? <Loader2 className="animate-spin" /> : <CheckCircle size={20} />}
-            {uploading ? "Publishing Profile..." : "Create Profile"}
-          </button>
-        </form>
-      </main>
-
-      {/* SUCCESS MODAL */}
-      {showSuccess && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md rounded-[3rem] p-10 text-center shadow-2xl animate-in zoom-in-95 duration-300">
-            <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle size={40} />
-            </div>
-            <h2 className="text-3xl font-black text-slate-900 tracking-tighter mb-2">You're Live!</h2>
-            <p className="text-slate-500 text-sm mb-8 px-4 leading-relaxed">
-              Your profile has been created. Save this secret link to edit your information later.
-            </p>
-            
-            <div className="space-y-3 mb-8">
-              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                <input readOnly value={editLink} className="w-full bg-transparent border-none outline-none text-[10px] font-mono text-center text-slate-400" />
-              </div>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => {navigator.clipboard.writeText(editLink); alert("Copied to clipboard!")}}
-                  className="flex-1 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 py-4 rounded-2xl font-bold text-sm transition-all"
-                >
-                  <Copy size={18} /> Copy
-                </button>
-                <button 
-                  onClick={handleShareEditLink}
-                  className="flex-1 flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white py-4 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-emerald-100"
-                >
-                  <Share2 size={18} /> Share
-                </button>
-              </div>
-            </div>
-
-            <button 
-              onClick={() => router.push('/')}
-              className="w-full py-4 text-slate-400 hover:text-slate-900 font-bold transition-colors"
-            >
-              Skip to Home Page
+          <div className="grid grid-cols-1 gap-3">
+            <button onClick={copyToClipboard} className="flex items-center justify-center gap-2 py-4 bg-slate-900 text-white rounded-2xl font-bold uppercase text-xs hover:bg-slate-800 transition-all">
+              <Copy size={16} /> Copy Edit Link
+            </button>
+            <a href={editLink} target="_blank" className="flex items-center justify-center gap-2 py-4 bg-indigo-600 text-white rounded-2xl font-bold uppercase text-xs hover:bg-indigo-500 transition-all text-center">
+              <ExternalLink size={16} /> Open Edit Mode
+            </a>
+            <button onClick={() => router.push('/')} className="py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold uppercase text-xs hover:bg-slate-200 transition-all">
+              Go to Directory
             </button>
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 pb-20 font-sans">
+      <div className="bg-white border-b p-4 sticky top-0 z-10 shadow-sm">
+        <div className="max-w-xl mx-auto flex items-center justify-between">
+          <h1 className="text-xl font-black text-slate-800 uppercase tracking-tight">New Registration</h1>
+          <button onClick={() => router.push('/')} className="text-[10px] font-black uppercase text-slate-400">Cancel</button>
+        </div>
+      </div>
+
+      <div className="max-w-xl mx-auto mt-8 px-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          
+          {/* PHOTO SELECTION */}
+          <div className="grid grid-cols-2 gap-4">
+            {[1, 2].map(num => (
+              <div key={num} className="bg-white p-2 rounded-[2.5rem] shadow-sm border border-slate-100 aspect-square flex flex-col items-center justify-center overflow-hidden relative group">
+                <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={(e) => setPhotos(prev => ({...prev, [`p${num}`]: e.target.files?.[0] || null}))} />
+                {photos[`p${num}` as 'p1' | 'p2'] ? (
+                  <img src={URL.createObjectURL(photos[`p${num}` as 'p1' | 'p2']!)} className="w-full h-full object-cover rounded-[2rem]" />
+                ) : (
+                  <div className="text-slate-400 flex flex-col items-center gap-2 group-hover:text-indigo-500 transition-colors">
+                    <Camera size={24} />
+                    <span className="text-[10px] font-bold uppercase">Add Photo {num}</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* PERSONAL SECTION */}
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-5">
+            <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Personal Info</h3>
+            <InputField label="Full Name *" name="name" icon={<User size={16}/>} />
+            <div className="grid grid-cols-2 gap-4">
+              <InputField label="Date of Birth *" name="dob" type="date" />
+              <InputField label="Time of Birth" name="time" type="time" />
+            </div>
+            <InputField label="Birth Place *" name="place" icon={<MapPin size={16}/>} />
+            <InputField label="Gotra" name="gotra" />
+            <InputField label="Education *" name="education" />
+            <InputField label="Occupation *" name="occupation" icon={<Briefcase size={16}/>} />
+            <InputField label="Hobbies" name="hobbies" />
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 ml-5 uppercase">Describe Yourself</label>
+              <textarea name="bio" rows={3} className="w-full px-5 py-4 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-slate-700 font-bold text-sm outline-none" placeholder="Write a few lines about yourself..." />
+            </div>
+          </div>
+
+          {/* FAMILY SECTION */}
+          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-5">
+            <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Family & Contact</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <InputField label="Father's Name" name="father_name" icon={<Heart size={14}/>} />
+              <InputField label="Mother's Name" name="mother_name" icon={<Heart size={14}/>} />
+            </div>
+            <InputField label="Business Name" name="business" />
+            <InputField label="Primary Contact *" name="contact_number" type="tel" />
+            <div className="grid grid-cols-2 gap-4">
+              <InputField label="Family Contact 1" name="family_contact_1" />
+              <InputField label="Family Contact 2" name="family_contact_2" />
+            </div>
+          </div>
+
+          <button disabled={loading} className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase tracking-tight shadow-xl flex items-center justify-center gap-3 hover:bg-indigo-600 transition-all disabled:opacity-50">
+            {loading ? <Loader2 className="animate-spin" /> : <Check size={20} />}
+            {loading ? "Creating Profile..." : "Submit Registration"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
 
-// UI HELPERS
-function PhotoInput({ id, label, preview, onChange }: any) {
+function InputField({ label, name, type = "text", icon }: any) {
   return (
-    <div className="relative h-48 bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200 overflow-hidden group hover:border-emerald-400 transition-all">
-      {preview ? <img src={preview} className="w-full h-full object-cover" /> : <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-400"><Camera size={28} /><span className="text-[10px] font-black uppercase tracking-widest">{label}</span></div>}
-      <input type="file" name={id} onChange={onChange} className="absolute inset-0 opacity-0 cursor-pointer" />
-    </div>
-  );
-}
-
-function InputField({ icon, ...props }: any) {
-  return (
-    <div className="relative flex items-center group">
-      <div className="absolute left-4 text-slate-300 group-focus-within:text-emerald-500 transition-colors font-bold">{icon}</div>
-      <input className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-emerald-200 font-bold text-slate-700 transition-all placeholder:text-slate-300" {...props} />
+    <div className="space-y-1 w-full text-left font-sans">
+      <label className="text-[10px] font-bold text-slate-400 ml-5 uppercase tracking-tighter">{label}</label>
+      <div className="relative">
+        {icon && <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300">{icon}</div>}
+        <input name={name} type={type} className={`w-full ${icon ? 'pl-12' : 'pl-5'} pr-5 py-4 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-slate-700 font-bold text-sm outline-none transition-all`} />
+      </div>
     </div>
   );
 }
