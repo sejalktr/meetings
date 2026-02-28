@@ -2,11 +2,15 @@
 import React, { useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { User, Briefcase, MapPin, Heart, Camera, Check, Loader2, Copy, ExternalLink, Share2, PartyPopper } from 'lucide-react';
+import  { 
+  Camera, CheckCircle, Loader2, User, MapPin, 
+  Briefcase, Calendar, Clock, Heart, ChevronLeft, 
+  Copy, Share2, Sparkles, GraduationCap, Phone, PartyPopper 
+} from 'lucide-react';
 
 export default function AddProfile() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [uploading, setLoading] = useState(false);
   const [createdData, setCreatedData] = useState<{ token: string } | null>(null);
   const [photos, setPhotos] = useState<{ p1: File | null, p2: File | null }>({ p1: null, p2: null });
 
@@ -153,12 +157,24 @@ export default function AddProfile() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20 font-sans">
+      {/* NAVBAR */}
+      <nav className="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-100 px-6 py-4">
+        <div className="max-w-2xl mx-auto flex items-center gap-4">
+          <button onClick={() => router.back()} className="p-2 hover:bg-slate-50 rounded-full transition-all">
+            <ChevronLeft size={24} />
+          </button>
+          <h1 className="text-xl font-black tracking-tighter uppercase">Join Network</h1>
+        </div>
+      </nav>
+      
+      {/* nav bar alternate 
       <div className="bg-white border-b p-4 sticky top-0 z-10 shadow-sm">
         <div className="max-w-xl mx-auto flex items-center justify-between">
           <h1 className="text-xl font-black text-slate-800 uppercase tracking-tight">New Registration</h1>
           <button onClick={() => router.push('/')} className="text-[10px] font-black uppercase text-slate-400">Cancel</button>
         </div>
       </div>
+      */}
 
       <div className="max-w-xl mx-auto mt-8 px-4">
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -210,8 +226,8 @@ export default function AddProfile() {
             </div>
               
             <InputField label="Business Name" name="business" />
-            <InputField label="Primary Contact *" name="contact_number" type="tel" maxLength={10} placeholder="e.g. 9876543210"/>
-            
+            <InputField icon={<Phone size={18} label="Primary Contact *" name="contact_number" type="tel" maxLength={10} placeholder="e.g. 9876543210"/>
+
             <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-4">
               <InputField label="Family Contact 1" name="family_contact_1" placeholder="Family Contact 1"/>
               <InputField label="Family Contact 2" name="family_contact_2" placeholder="Family Contact 2"/>
@@ -219,9 +235,9 @@ export default function AddProfile() {
             
           </div>
 
-          <button disabled={loading} className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase tracking-tight shadow-xl flex items-center justify-center gap-3 hover:bg-indigo-600 transition-all disabled:opacity-50">
-            {loading ? <Loader2 className="animate-spin" /> : <Check size={20} />}
-            {loading ? "Creating Profile..." : "Create Profile"}
+          <button disabled={uploading} className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase tracking-tight shadow-xl flex items-center justify-center gap-3 hover:bg-indigo-600 transition-all disabled:opacity-50">
+            {uploading ? <Loader2 className="animate-spin" /> : <CheckCircle size={20} />}
+            {uploading ? "Publishing Profile..." : "Create Profile"}
           </button>
         </form>
       </div>
