@@ -41,7 +41,7 @@ export default function AddProfile() {
 
     try {
       // 2. UNIQUE CONTACT & DUPLICATE CHECK
-      const { data: existing } = await supabase
+      const { data: existing, error: checkError } = await supabase
         .from('entries')
         .select('name, dob, father_name, mother_name, contact_number')
         .or(`contact_number.eq.${formData.get('contact_number')}, name.eq.${formData.get('name')}`);
