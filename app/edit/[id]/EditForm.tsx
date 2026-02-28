@@ -1,187 +1,239 @@
 "use client";
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
-import { Save, ArrowLeft, User, Briefcase, MapPin, Heart, Camera, Trash2, Loader2, AlertCircle, Check } from 'lucide-react';
+import { useRouter, useParams } from 'next/navigation';
+import { 
+  Camera, CheckCircle, Loader2, User, MapPin, 
+  Briefcase, Calendar, Clock, Heart, Trash2,
+  Copy, ExternalLink, Sparkles, Phone, UserPlus, Share2, Save
+} from 'lucide-react';
 
-export function EditForm({ initialData, token }: { initialData: any, token: string }) {
+export default function EditProfile() {
   const router = useRouter();
-  const [saving, setSaving] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({ photo_1: 0, photo_2: 0 });
-  
-  const [photos, setPhotos] = useState<{photo_1: any, photo_2: any}>({
-    photo_1: initialData.photo_1 || '',
-    photo_2: initialData.photo_2 || ''
-  });
+  const params = useParams();
+  const token = params.token as string;
 
-  const fileInputRef1 = useRef<HTMLInputElement>(null);
-  const fileInputRef2 = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [profileData, setProfileData] = useState<any>(null);
+  const [photos, setPhotos] = useState<{ p1: File | string | null, p2: File | string | null }>({ p1: null, p2: null });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, key: 'photo_1' | 'photo_2') => {
-    const file = e.target.files?.[0];
-    if (file) setPhotos(prev => ({ ...prev, [key]: file }));
+  // 1. FETCH EXISTING DATA
+  const fetchProfile = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('entries')
+        .select('*')
+        .eq('edit_token', token)
+        .single();
+
+      if (error || !data) {
+        alert("Profile not found or invalid link.");
+        router.push('/');
+        return;
+      }
+
+      setProfileData(data);
+      setPhotos({ p1: data.photo_1, p2: data.photo_2 });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [token, router]);
+
+  useEffect(() => {
+    if (token) fetchProfile();
+  }, [token, fetchProfile]);
+
+  const removePhoto = (key: 'p1' | 'p2') => {
+    setPhotos(prev => ({ ...prev, [key]: null }));
   };
 
-  const getPreview = (val: any) => {
-    if (!val) return '';
-    if (typeof val === 'string') return val;
-    return URL.createObjectURL(val);
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/profile/${profileData.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: profileData.name, url: shareUrl });
+      } catch (err) { console.log(err); }
+    } else {
+      navigator.clipboard.writeText(shareUrl);
+      alert("Profile link copied!");
+    }
   };
 
+  // 2. HANDLE UPDATE
   async function handleUpdate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    
-    // FIX: Capture form data immediately before any 'await' happens
-    const formElement = e.currentTarget;
-    const formData = new FormData(formElement);
-    
-    setSaving(true);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    // Validations
+    const required = ['name', 'dob', 'place', 'education', 'occupation', 'contact_number'];
+    for (const field of required) {
+      if (!formData.get(field)) {
+        alert(`Required: ${field.replace('_', ' ')}`);
+        return;
+      }
+    }
+
+    const contactNo = formData.get('contact_number') as string;
+    if (!/^[0-9]{10}$/.test(contactNo)) {
+      alert("Please enter a valid 10-digit contact number.");
+      return;
+    }
+
+    setUpdating(true);
 
     try {
-      let finalUrls = { photo_1: photos.photo_1, photo_2: photos.photo_2 };
+      let urls = { p1: photos.p1 as string, p2: photos.p2 as string };
 
-      // 1. Upload Images if they are new Files
-      for (const key of ['photo_1', 'photo_2'] as const) {
-        if (photos[key] instanceof File) {
-          const file = photos[key];
-          const fileExt = file.name.split('.').pop();
-          const filePath = `profile-photos/${token}-${key}-${Date.now()}.${fileExt}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from('user-photos')
-            .upload(filePath, file);
-
-          if (uploadError) throw uploadError;
-
-          setUploadProgress(prev => ({ ...prev, [key]: 100 }));
-
-          const { data } = supabase.storage.from('user-photos').getPublicUrl(filePath);
-          finalUrls[key] = data.publicUrl;
+      // Handle New Uploads
+      for (const key of ['p1', 'p2'] as const) {
+        const file = photos[key];
+        if (file instanceof File) {
+          const path = `profile-photos/${token}-${key}-${Date.now()}`;
+          const { error: upErr } = await supabase.storage.from('user-photos').upload(path, file);
+          if (upErr) throw upErr;
+          urls[key] = supabase.storage.from('user-photos').getPublicUrl(path).data.publicUrl;
+        } else if (file === null) {
+          urls[key] = ''; // Image was deleted
         }
       }
 
-      // 2. Save everything to Database using captured formData
-      const updates = {
-        name: formData.get('name'),
-        dob: formData.get('dob'),
-        time: formData.get('time'),
-        place: formData.get('place'),
-        education: formData.get('education'),
-        occupation: formData.get('occupation'),
-        business: formData.get('business'),
-        father_name: formData.get('father_name'),
-        mother_name: formData.get('mother_name'),
-        contact_number: formData.get('contact_number'),
-        photo_1: finalUrls.photo_1,
-        photo_2: finalUrls.photo_2,
-      };
+      const { error: updErr } = await supabase
+        .from('entries')
+        .update({
+          name: formData.get('name'),
+          dob: formData.get('dob'),
+          time: formData.get('time'),
+          place: formData.get('place'),
+          education: formData.get('education'),
+          occupation: formData.get('occupation'),
+          gotra: formData.get('gotra'),
+          hobbies: formData.get('hobbies'),
+          bio: formData.get('bio'),
+          father_name: formData.get('father_name'),
+          mother_name: formData.get('mother_name'),
+          business: formData.get('business'),
+          contact_number: contactNo,
+          family_contact_1: formData.get('family_contact_1'),
+          family_contact_2: formData.get('family_contact_2'),
+          photo_1: urls.p1,
+          photo_2: urls.p2,
+        })
+        .eq('edit_token', token);
 
-      const { error: dbError } = await supabase.from('entries').update(updates).eq('edit_token', token);
-      if (dbError) throw dbError;
-
-      alert("Changes saved successfully!");
-      router.push('/');
-      router.refresh();
-
+      if (updErr) throw updErr;
+      alert("Profile updated successfully!");
+      router.push(`/profile/${profileData.id}`);
+      
     } catch (err: any) {
-      console.error(err);
-      alert("Error: " + err.message);
+      alert(err.message);
     } finally {
-      setSaving(false);
-      setUploadProgress({ photo_1: 0, photo_2: 0 });
+      setUpdating(false);
     }
   }
 
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <Loader2 className="animate-spin text-indigo-600" size={40} />
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-slate-50 pb-20 font-sans">
-      <div className="bg-white border-b sticky top-0 z-20 p-4 shadow-sm">
-        <div className="max-w-xl mx-auto flex items-center gap-4">
-          <button type="button" onClick={() => router.push('/')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <ArrowLeft size={20} />
-          </button>
-          <h1 className="text-xl font-black text-slate-800 uppercase ">Edit Profile</h1>
+      {/* STICKY HEADER */}
+      <div className="bg-white border-b p-4 sticky top-0 z-30 shadow-sm">
+        <div className="max-w-xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center text-white">
+              <Save size={16} />
+            </div>
+            <h1 className="text-xl font-black text-slate-800 uppercase tracking-tight">Edit Profile</h1>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={handleShare} className="p-2 text-slate-400 hover:text-indigo-600 transition-colors">
+              <Share2 size={20} />
+            </button>
+            <button onClick={() => router.back()} className="px-4 py-2 bg-slate-50 text-slate-400 rounded-xl text-[10px] font-black uppercase hover:bg-slate-100 transition-all">
+              Back
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="max-w-xl mx-auto mt-8 px-4">
         <form onSubmit={handleUpdate} className="space-y-6">
           
-          {/* PHOTO GRID */}
+          {/* PHOTO SECTION WITH TRASH FUNCTION */}
           <div className="grid grid-cols-2 gap-4">
-            {[1, 2].map((num) => {
-              const key = `photo_${num}` as 'photo_1' | 'photo_2';
-              const inputRef = num === 1 ? fileInputRef1 : fileInputRef2;
-              const preview = getPreview(photos[key]);
-              const isUploading = saving && photos[key] instanceof File;
-              
-              return (
-                <div key={key} className="relative bg-white p-2 rounded-[2.5rem] shadow-sm border border-slate-100 aspect-square flex items-center justify-center overflow-hidden group">
-                  <input type="file" hidden ref={inputRef} onChange={(e) => handleFileChange(e, key)} accept="image/*" />
-                  
-                  {preview ? (
-                    <>
-                      <img src={preview} className="w-full h-full rounded-[2rem] object-cover" alt="Preview" />
-                      
-                      {isUploading && (
-                        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center">
-                          <Loader2 className="animate-spin text-white mb-2" />
-                          <p className="text-[8px] font-black text-white uppercase">Uploading</p>
-                        </div>
-                      )}
-
-                      {confirmDelete === key ? (
-                        <div className="absolute inset-0 bg-indigo-600/95 flex flex-col items-center justify-center p-4 text-center">
-                          <AlertCircle className="text-white mb-2" size={24} />
-                          <p className="text-[10px] font-bold text-white uppercase mb-3">Remove?</p>
-                          <div className="flex gap-2">
-                            <button type="button" onClick={() => setConfirmDelete(null)} className="px-3 py-1 bg-white/20 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest">No</button>
-                            <button type="button" onClick={() => { setPhotos(p => ({...p, [key]: ''})); setConfirmDelete(null); }} className="px-3 py-1 bg-white text-indigo-600 rounded-lg text-[10px] font-bold uppercase tracking-widest">Yes</button>
-                          </div>
-                        </div>
-                      ) : (
-                        !isUploading && (
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <button type="button" onClick={() => setConfirmDelete(key)} className="p-3 bg-red-500 text-white rounded-full shadow-lg"><Trash2 size={20} /></button>
-                          </div>
-                        )
-                      )}
-                    </>
-                  ) : (
-                    <button type="button" onClick={() => inputRef.current?.click()} className="flex flex-col items-center gap-2 text-slate-400">
-                      <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center border-2 border-dashed border-slate-200"><Camera size={24} /></div>
-                      <span className="text-[10px] font-black uppercase tracking-widest">Add Photo {num}</span>
+            {(['p1', 'p2'] as const).map((key, index) => (
+              <div key={key} className="bg-white p-2 rounded-[2.5rem] shadow-sm border border-slate-100 aspect-square flex flex-col items-center justify-center overflow-hidden relative group">
+                {photos[key] ? (
+                  <>
+                    <img 
+                      src={photos[key] instanceof File ? URL.createObjectURL(photos[key] as File) : photos[key] as string} 
+                      className="w-full h-full object-cover rounded-[2rem]" 
+                      alt="preview" 
+                    />
+                    <button 
+                      type="button"
+                      onClick={() => removePhoto(key)}
+                      className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-all z-20"
+                    >
+                      <Trash2 size={16} />
                     </button>
-                  )}
-                </div>
-              );
-            })}
+                  </>
+                ) : (
+                  <>
+                    <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={(e) => setPhotos(prev => ({...prev, [key]: e.target.files?.[0] || null}))} />
+                    <div className="text-slate-400 flex flex-col items-center gap-2 group-hover:text-indigo-500 transition-colors">
+                      <Camera size={24} />
+                      <span className="text-[10px] font-bold uppercase">Change Photo {index + 1}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
           </div>
 
+          {/* PERSONAL INFO */}
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-5">
-            <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">Profile Information</h3>
-            <InputField label="Full Name" name="name" defaultValue={initialData.name} icon={<User size={16}/>} />
+            <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Personal Details</h3>
+            <InputField label="Full Name *" name="name" defaultValue={profileData.name} icon={<User size={16}/>} />
             <div className="grid grid-cols-2 gap-4">
-              <InputField label="Date of Birth" name="dob" type="date" defaultValue={initialData.dob} />
-              <InputField label="Time of Birth" name="time" type="time" defaultValue={initialData.time} />
+              <InputField label="Date of Birth *" name="dob" type="date" defaultValue={profileData.dob} icon={<Calendar size={16}/>} />
+              <InputField label="Time of Birth" name="time" type="time" defaultValue={profileData.time} icon={<Clock size={16}/>} />
             </div>
-            <InputField label="Birth Place" name="place" defaultValue={initialData.place} icon={<MapPin size={16}/>} />
-            <InputField label="Education" name="education" defaultValue={initialData.education} />
-            <InputField label="Occupation" name="occupation" defaultValue={initialData.occupation} icon={<Briefcase size={16}/>} />
+            <InputField label="Birth Place *" name="place" defaultValue={profileData.place} icon={<MapPin size={16}/>} />
+            <InputField label="Gotra" name="gotra" defaultValue={profileData.gotra} />
+            <InputField label="Education *" name="education" defaultValue={profileData.education} />
+            <InputField label="Occupation *" name="occupation" defaultValue={profileData.occupation} icon={<Briefcase size={16}/>} />
+            <InputField label="Hobbies" name="hobbies" defaultValue={profileData.hobbies} />
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 ml-5 uppercase">Describe Yourself</label>
+              <textarea name="bio" rows={3} defaultValue={profileData.bio} className="w-full px-5 py-4 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-slate-700 font-bold text-sm outline-none" />
+            </div>
           </div>
 
+          {/* FAMILY & CONTACT - FULL WIDTH 1-LINERS */}
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-5">
-            <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">Family & Contact</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <InputField label="Father's Name" name="father_name" defaultValue={initialData.father_name} icon={<Heart size={14}/>} />
-              <InputField label="Mother's Name" name="mother_name" defaultValue={initialData.mother_name} icon={<Heart size={14}/>} />
+            <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Family & Contact</h3>
+            <InputField label="Father's Name" name="father_name" defaultValue={profileData.father_name} icon={<Heart size={16}/>} />
+            <InputField label="Mother's Name" name="mother_name" defaultValue={profileData.mother_name} icon={<Heart size={16}/>} />
+            <InputField label="Family Business" name="business" defaultValue={profileData.business} icon={<Sparkles size={16}/>} />
+            
+            <div className="pt-4 border-t border-slate-100 space-y-5">
+              <InputField label="Primary Contact *" name="contact_number" type="tel" maxLength={10} defaultValue={profileData.contact_number} icon={<Phone size={16}/>} />
+              <InputField label="Family Contact 1" name="family_contact_1" defaultValue={profileData.family_contact_1} />
+              <InputField label="Family Contact 2" name="family_contact_2" defaultValue={profileData.family_contact_2} />
             </div>
-            <InputField label="Business Name" name="business" defaultValue={initialData.business} />
-            <InputField label="Contact Number" name="contact_number" defaultValue={initialData.contact_number} />
           </div>
 
-          <button type="submit" disabled={saving} className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase shadow-xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all disabled:opacity-50">
-            {saving ? <><Loader2 className="animate-spin" /> Saving Changes...</> : <><Check size={20} /> Update Details</>}
+          <button disabled={updating} className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase tracking-tight shadow-xl flex items-center justify-center gap-3 disabled:opacity-50 transition-all hover:bg-emerald-600">
+            {updating ? <Loader2 className="animate-spin" /> : <CheckCircle size={20} />}
+            {updating ? "Saving Changes..." : "Update Profile"}
           </button>
         </form>
       </div>
@@ -189,14 +241,20 @@ export function EditForm({ initialData, token }: { initialData: any, token: stri
   );
 }
 
-function InputField({ label, name, defaultValue, type = "text", icon }: any) {
+function InputField({ label, name, type = "text", icon, defaultValue, maxLength }: any) {
   return (
-    <div className="space-y-1 w-full">
-      <label className="text-[10px] font-black text-slate-400 ml-5 uppercase tracking-tighter">{label}</label>
+    <div className="space-y-1 w-full text-left font-sans">
+      <label className="text-[10px] font-bold text-slate-400 ml-5 uppercase tracking-tighter">{label}</label>
       <div className="relative">
         {icon && <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300">{icon}</div>}
-        <input name={name} type={type} defaultValue={defaultValue} className={`w-full ${icon ? 'pl-12' : 'pl-5'} pr-5 py-4 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-slate-700 font-bold text-sm outline-none transition-all`} />
+        <input 
+          name={name} 
+          type={type} 
+          maxLength={maxLength}
+          defaultValue={defaultValue}
+          className={`w-full ${icon ? 'pl-12' : 'pl-5'} pr-5 py-4 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-slate-700 font-bold text-sm outline-none transition-all`} 
+        />
       </div>
     </div>
   );
-}
+}  
