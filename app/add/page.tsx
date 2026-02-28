@@ -156,9 +156,9 @@ export default function AddProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20 font-sans">
       {/* NAVBAR */}
-      {/* <div className="max-w-2xl mx-auto flex items-center gap-4">
+      {/* <div className="min-h-screen bg-slate-50 pb-20 font-sans">
+      <div className="max-w-2xl mx-auto flex items-center gap-4">
         <button onClick={() => router.back()} className="p-2 hover:bg-slate-50 rounded-full transition-all">
           <ChevronLeft size={24} />
         </button>
