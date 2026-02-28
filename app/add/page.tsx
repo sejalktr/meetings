@@ -158,23 +158,30 @@ export default function AddProfile() {
   return (
     <div className="min-h-screen bg-slate-50 pb-20 font-sans">
       {/* NAVBAR */}
-      <nav className="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-100 px-6 py-4">
-        <div className="max-w-2xl mx-auto flex items-center gap-4">
-          <button onClick={() => router.back()} className="p-2 hover:bg-slate-50 rounded-full transition-all">
-            <ChevronLeft size={24} />
-          </button>
-          <h1 className="text-xl font-black tracking-tighter uppercase">Join Network</h1>
-        </div>
-      </nav>
+      {/* <div className="max-w-2xl mx-auto flex items-center gap-4">
+        <button onClick={() => router.back()} className="p-2 hover:bg-slate-50 rounded-full transition-all">
+          <ChevronLeft size={24} />
+        </button>
+        <h1 className="text-xl font-black tracking-tighter uppercase">Join Network</h1>
+      </div> */}
       
-      {/* nav bar alternate 
-      <div className="bg-white border-b p-4 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-xl mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-black text-slate-800 uppercase tracking-tight">New Registration</h1>
-          <button onClick={() => router.push('/')} className="text-[10px] font-black uppercase text-slate-400">Cancel</button>
+      <div className="bg-white border-b p-4 sticky top-0 z-30 shadow-sm">
+      <div className="max-w-xl mx-auto flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center text-white">
+            <UserPlus size={16} />
+          </div>
+          <h1 className="text-xl font-black text-slate-800 ">Join Network</h1>
         </div>
+        <button 
+          onClick={() => router.push('/')} 
+          className="px-4 py-2 bg-slate-50 text-slate-400 rounded-xl text-[10px] font-black hover:bg-slate-100 transition-all"
+        >
+          Cancel
+        </button>
       </div>
-      */}
+    </div>
+        
 
       <div className="max-w-xl mx-auto mt-8 px-4">
         <form onSubmit={handleSubmit} className="space-y-6">
