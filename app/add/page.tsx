@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { 
   Camera, CheckCircle, Loader2, User, MapPin, 
-  Briefcase, Calendar, Clock, Heart, 
+  Briefcase, Calendar, Clock, Heart, Trash2,
   Copy, ExternalLink, Sparkles, Phone, PartyPopper, UserPlus 
 } from 'lucide-react';
 
@@ -19,6 +19,10 @@ export default function AddProfile() {
   const copyToClipboard = () => {
     navigator.clipboard.writeText(editLink);
     alert("Link copied to clipboard!");
+  };
+
+  const removePhoto = (key: 'p1' | 'p2') => {
+    setPhotos(prev => ({ ...prev, [key]: null }));
   };
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -162,18 +166,30 @@ export default function AddProfile() {
 
       <div className="max-w-xl mx-auto mt-8 px-4">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* PHOTO SELECTION */}
+          
+          {/* PHOTO SELECTION WITH TRASH BUTTON */}
           <div className="grid grid-cols-2 gap-4">
-            {[1, 2].map(num => (
-              <div key={num} className="bg-white p-2 rounded-[2.5rem] shadow-sm border border-slate-100 aspect-square flex flex-col items-center justify-center overflow-hidden relative group">
-                <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={(e) => setPhotos(prev => ({...prev, [`p${num}`]: e.target.files?.[0] || null}))} />
-                {photos[`p${num}` as 'p1' | 'p2'] ? (
-                  <img src={URL.createObjectURL(photos[`p${num}` as 'p1' | 'p2']!)} className="w-full h-full object-cover rounded-[2rem]" alt="preview" />
+            {(['p1', 'p2'] as const).map((key, index) => (
+              <div key={key} className="bg-white p-2 rounded-[2.5rem] shadow-sm border border-slate-100 aspect-square flex flex-col items-center justify-center overflow-hidden relative group">
+                {photos[key] ? (
+                  <>
+                    <img src={URL.createObjectURL(photos[key]!)} className="w-full h-full object-cover rounded-[2rem]" alt="preview" />
+                    <button 
+                      type="button"
+                      onClick={() => removePhoto(key)}
+                      className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-all z-20"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </>
                 ) : (
-                  <div className="text-slate-400 flex flex-col items-center gap-2 group-hover:text-indigo-500 transition-colors">
-                    <Camera size={24} />
-                    <span className="text-[10px] font-bold uppercase">Photo {num}</span>
-                  </div>
+                  <>
+                    <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={(e) => setPhotos(prev => ({...prev, [key]: e.target.files?.[0] || null}))} />
+                    <div className="text-slate-400 flex flex-col items-center gap-2 group-hover:text-indigo-500 transition-colors">
+                      <Camera size={24} />
+                      <span className="text-[10px] font-bold uppercase">Photo {index + 1}</span>
+                    </div>
+                  </>
                 )}
               </div>
             ))}
@@ -190,29 +206,29 @@ export default function AddProfile() {
             <InputField label="Birth Place *" name="place" icon={<MapPin size={16}/>} placeholder="City, State" />
             <InputField label="Gotra" name="gotra" placeholder="Enter Gotra" />
             <InputField label="Education *" name="education" placeholder="Highest Degree" />
-            <InputField label="Occupation *" name="occupation" icon={<Briefcase size={16}/>} placeholder="Job Title or Business" />
+            <InputField label="Occupation *" name="occupation" icon={<Briefcase size={16}/>} placeholder="Job Title" />
             <InputField label="Hobbies" name="hobbies" placeholder="Reading, Sports, etc." />
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 ml-5 uppercase">Describe Yourself</label>
-              <textarea name="bio" rows={3} className="w-full px-5 py-4 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-slate-700 font-bold text-sm outline-none" placeholder="A few lines about your personality..." />
+              <textarea name="bio" rows={3} className="w-full px-5 py-4 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-slate-700 font-bold text-sm outline-none" placeholder="A few lines about you..." />
             </div>
           </div>
 
-          {/* FAMILY SECTION - ALL FULL WIDTH */}
+          {/* FAMILY & CONTACT SECTION - ALL 1 LINERS */}
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-5">
             <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Family & Contact</h3>
             <InputField label="Father's Name" name="father_name" icon={<Heart size={16}/>} placeholder="Father's Full Name" />
             <InputField label="Mother's Name" name="mother_name" icon={<Heart size={16}/>} placeholder="Mother's Full Name" />
             <InputField label="Family Business" name="business" icon={<Sparkles size={16}/>} placeholder="Business or Farm Name" />
             
-            <div className="pt-4 border-t border-slate-50 space-y-5">
+            <div className="pt-4 border-t border-slate-100 space-y-5">
               <InputField label="Primary Contact *" name="contact_number" type="tel" maxLength={10} icon={<Phone size={16}/>} placeholder="10 Digit Mobile Number" />
               <InputField label="Family Contact 1" name="family_contact_1" placeholder="Alternate Family Contact 1" />
               <InputField label="Family Contact 2" name="family_contact_2" placeholder="Alternative Family Contact 2" />
             </div>
           </div>
 
-          <button disabled={uploading} className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase tracking-tight shadow-xl flex items-center justify-center gap-3 disabled:opacity-50">
+          <button disabled={uploading} className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase tracking-tight shadow-xl flex items-center justify-center gap-3 disabled:opacity-50 transition-all hover:bg-indigo-600">
             {uploading ? <Loader2 className="animate-spin" /> : <CheckCircle size={20} />}
             {uploading ? "Publishing..." : "Create Profile"}
           </button>
