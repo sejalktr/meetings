@@ -26,11 +26,10 @@ export default function AddProfile() {
     const form = e.currentTarget;
     const formData = new FormData(form);
 
-    // 1. Validations
     const required = ['name', 'dob', 'place', 'education', 'occupation', 'contact_number'];
     for (const field of required) {
       if (!formData.get(field)) {
-        alert(`Please fill in the required field: ${field.replace('_', ' ')}`);
+        alert(`Required: ${field.replace('_', ' ')}`);
         return;
       }
     }
@@ -49,7 +48,6 @@ export default function AddProfile() {
     setLoading(true);
 
     try {
-      // 2. Duplicate Check
       const { data: existing, error: checkError } = await supabase
         .from('entries')
         .select('name, dob, father_name, mother_name, contact_number')
@@ -66,7 +64,7 @@ export default function AddProfile() {
         );
 
         if (isExactMatch) {
-          alert("A profile with these details or this contact number already exists.");
+          alert("A profile with these details already exists.");
           setLoading(false);
           return;
         }
@@ -124,21 +122,21 @@ export default function AddProfile() {
             <PartyPopper size={40} />
           </div>
           <div>
-            <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Profile Created!</h2>
-            <p className="text-slate-500 text-sm mt-2 font-bold">Keep this link safe to edit your profile later.</p>
+            <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Success!</h2>
+            <p className="text-slate-500 text-sm mt-2 font-bold">Profile created. Keep this link to edit later.</p>
           </div>
           <div className="bg-slate-50 p-4 rounded-2xl border border-dashed border-slate-200 break-all text-[10px] font-bold text-indigo-600">
             {editLink}
           </div>
           <div className="grid grid-cols-1 gap-3">
             <button onClick={copyToClipboard} className="flex items-center justify-center gap-2 py-4 bg-slate-900 text-white rounded-2xl font-bold uppercase text-xs">
-              <Copy size={16} /> Copy Edit Link
+              <Copy size={16} /> Copy Link
             </button>
             <a href={editLink} target="_blank" className="flex items-center justify-center gap-2 py-4 bg-indigo-600 text-white rounded-2xl font-bold uppercase text-xs text-center">
-              <ExternalLink size={16} /> Open Edit Mode
+              <ExternalLink size={16} /> Open Edit
             </a>
             <button onClick={() => router.push('/')} className="py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold uppercase text-xs">
-              Go to Directory
+              Home
             </button>
           </div>
         </div>
@@ -154,7 +152,7 @@ export default function AddProfile() {
             <div className="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center text-white">
               <UserPlus size={16} />
             </div>
-            <h1 className="text-xl font-black text-slate-800">Join Network</h1>
+            <h1 className="text-xl font-black text-slate-800 uppercase tracking-tight">Join Network</h1>
           </div>
           <button onClick={() => router.push('/')} className="px-4 py-2 bg-slate-50 text-slate-400 rounded-xl text-[10px] font-black uppercase hover:bg-slate-100 transition-all">
             Cancel
@@ -174,7 +172,7 @@ export default function AddProfile() {
                 ) : (
                   <div className="text-slate-400 flex flex-col items-center gap-2 group-hover:text-indigo-500 transition-colors">
                     <Camera size={24} />
-                    <span className="text-[10px] font-bold uppercase">Add Photo {num}</span>
+                    <span className="text-[10px] font-bold uppercase">Photo {num}</span>
                   </div>
                 )}
               </div>
@@ -184,7 +182,7 @@ export default function AddProfile() {
           {/* PERSONAL SECTION */}
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-5">
             <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Personal Info</h3>
-            <InputField label="Full Name *" name="name" icon={<User size={16}/>} placeholder="Enter Full Name" />
+            <InputField label="Full Name *" name="name" icon={<User size={16}/>} placeholder="Full Name" />
             <div className="grid grid-cols-2 gap-4">
               <InputField label="Date of Birth *" name="dob" type="date" icon={<Calendar size={16}/>} />
               <InputField label="Time of Birth" name="time" type="time" icon={<Clock size={16}/>} />
@@ -193,32 +191,30 @@ export default function AddProfile() {
             <InputField label="Gotra" name="gotra" placeholder="Enter Gotra" />
             <InputField label="Education *" name="education" placeholder="Highest Degree" />
             <InputField label="Occupation *" name="occupation" icon={<Briefcase size={16}/>} placeholder="Job Title or Business" />
-            <InputField label="Hobbies" name="hobbies" placeholder="Cricket, Reading, etc." />
+            <InputField label="Hobbies" name="hobbies" placeholder="Reading, Sports, etc." />
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 ml-5 uppercase">Describe Yourself</label>
-              <textarea name="bio" rows={3} className="w-full px-5 py-4 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-slate-700 font-bold text-sm outline-none" placeholder="Write a few lines about your personality..." />
+              <textarea name="bio" rows={3} className="w-full px-5 py-4 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-slate-700 font-bold text-sm outline-none" placeholder="A few lines about your personality..." />
             </div>
           </div>
 
-          {/* FAMILY SECTION */}
+          {/* FAMILY SECTION - ALL FULL WIDTH */}
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-5">
             <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Family & Contact</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <InputField label="Father's Name" name="father_name" icon={<Heart size={16}/>} />
-              <InputField label="Mother's Name" name="mother_name" icon={<Heart size={16}/>} />
-            </div>
-            <InputField label="Family Business" name="business" icon={<Sparkles size={16}/>} />
-            <InputField label="Primary Contact *" name="contact_number" type="tel" maxLength={10} icon={<Phone size={16}/>} placeholder="10 Digit Number" />
+            <InputField label="Father's Name" name="father_name" icon={<Heart size={16}/>} placeholder="Father's Full Name" />
+            <InputField label="Mother's Name" name="mother_name" icon={<Heart size={16}/>} placeholder="Mother's Full Name" />
+            <InputField label="Family Business" name="business" icon={<Sparkles size={16}/>} placeholder="Business or Farm Name" />
             
-            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-50">
-              <InputField label="Extra Contact 1" name="family_contact_1" placeholder="Other Contact" />
-              <InputField label="Extra Contact 2" name="family_contact_2" placeholder="Other Contact" />
+            <div className="pt-4 border-t border-slate-50 space-y-5">
+              <InputField label="Primary Contact *" name="contact_number" type="tel" maxLength={10} icon={<Phone size={16}/>} placeholder="10 Digit Mobile Number" />
+              <InputField label="Family Contact 1" name="family_contact_1" placeholder="Alternate Family Contact 1" />
+              <InputField label="Family Contact 2" name="family_contact_2" placeholder="Alternative Family Contact 2" />
             </div>
           </div>
 
           <button disabled={uploading} className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase tracking-tight shadow-xl flex items-center justify-center gap-3 disabled:opacity-50">
             {uploading ? <Loader2 className="animate-spin" /> : <CheckCircle size={20} />}
-            {uploading ? "Publishing Profile..." : "Create Profile"}
+            {uploading ? "Publishing..." : "Create Profile"}
           </button>
         </form>
       </div>
@@ -229,7 +225,7 @@ export default function AddProfile() {
 function InputField({ label, name, type = "text", icon, placeholder, maxLength }: any) {
   return (
     <div className="space-y-1 w-full text-left font-sans">
-      {label && <label className="text-[10px] font-bold text-slate-400 ml-5 uppercase tracking-tighter">{label}</label>}
+      <label className="text-[10px] font-bold text-slate-400 ml-5 uppercase tracking-tighter">{label}</label>
       <div className="relative">
         {icon && <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300">{icon}</div>}
         <input 
