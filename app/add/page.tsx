@@ -1,11 +1,11 @@
 "use client";
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import  { 
+import { 
   Camera, CheckCircle, Loader2, User, MapPin, 
-  Briefcase, Calendar, Clock, Heart, ChevronLeft, 
-  Copy, Share2, Sparkles, GraduationCap, Phone, PartyPopper 
+  Briefcase, Calendar, Clock, Heart, 
+  Copy, ExternalLink, Sparkles, Phone, PartyPopper, UserPlus 
 } from 'lucide-react';
 
 export default function AddProfile() {
@@ -26,7 +26,7 @@ export default function AddProfile() {
     const form = e.currentTarget;
     const formData = new FormData(form);
 
-    // Validations
+    // 1. Validations
     const required = ['name', 'dob', 'place', 'education', 'occupation', 'contact_number'];
     for (const field of required) {
       if (!formData.get(field)) {
@@ -35,18 +35,13 @@ export default function AddProfile() {
       }
     }
 
-    // Must have at least one parent name
     if (!formData.get('father_name') && !formData.get('mother_name')) {
-      alert("Please provide a parent name.");
+      alert("Please provide at least one parent name.");
       return;
     }
 
-    // CONTACT NUMBER VALIDATION (10 Digits)
     const contactNo = formData.get('contact_number') as string;
-    // This regex checks if the string contains exactly 10 digits
-    const phoneRegex = /^[0-9]{10}$/;
-    
-    if (!phoneRegex.test(contactNo)) {
+    if (!/^[0-9]{10}$/.test(contactNo)) {
       alert("Please enter a valid 10-digit contact number.");
       return;
     }
@@ -54,17 +49,17 @@ export default function AddProfile() {
     setLoading(true);
 
     try {
-      // 2. UNIQUE CONTACT & DUPLICATE CHECK
+      // 2. Duplicate Check
       const { data: existing, error: checkError } = await supabase
         .from('entries')
         .select('name, dob, father_name, mother_name, contact_number')
-        .or(`contact_number.eq.${formData.get('contact_number')}, name.eq.${formData.get('name')}`);
+        .or(`contact_number.eq.${contactNo}, name.eq.${formData.get('name')}`);
 
       if (checkError) throw checkError;
       
       if (existing && existing.length > 0) {
         const isExactMatch = existing.find(ex => 
-          ex.contact_number === formData.get('contact_number') || 
+          ex.contact_number === contactNo || 
           (ex.name === formData.get('name') && 
            ex.dob === formData.get('dob') && 
            (ex.father_name === formData.get('father_name') || ex.mother_name === formData.get('mother_name')))
@@ -103,7 +98,7 @@ export default function AddProfile() {
         father_name: formData.get('father_name'),
         mother_name: formData.get('mother_name'),
         business: formData.get('business'),
-        contact_number: formData.get('contact_number'),
+        contact_number: contactNo,
         family_contact_1: formData.get('family_contact_1'),
         family_contact_2: formData.get('family_contact_2'),
         photo_1: urls.p1,
@@ -121,7 +116,6 @@ export default function AddProfile() {
     }
   }
 
-  // SUCCESS SCREEN
   if (createdData) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
@@ -129,24 +123,21 @@ export default function AddProfile() {
           <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto">
             <PartyPopper size={40} />
           </div>
-          
           <div>
             <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Profile Created!</h2>
-            <p className="text-slate-500 text-sm mt-2">Keep this link safe to edit your profile in the future.</p>
+            <p className="text-slate-500 text-sm mt-2 font-bold">Keep this link safe to edit your profile later.</p>
           </div>
-
-          <div className="bg-slate-50 p-4 rounded-2xl border border-dashed border-slate-200 break-all text-xs font-bold text-indigo-600">
+          <div className="bg-slate-50 p-4 rounded-2xl border border-dashed border-slate-200 break-all text-[10px] font-bold text-indigo-600">
             {editLink}
           </div>
-
           <div className="grid grid-cols-1 gap-3">
-            <button onClick={copyToClipboard} className="flex items-center justify-center gap-2 py-4 bg-slate-900 text-white rounded-2xl font-bold uppercase text-xs hover:bg-slate-800 transition-all">
+            <button onClick={copyToClipboard} className="flex items-center justify-center gap-2 py-4 bg-slate-900 text-white rounded-2xl font-bold uppercase text-xs">
               <Copy size={16} /> Copy Edit Link
             </button>
-            <a href={editLink} target="_blank" className="flex items-center justify-center gap-2 py-4 bg-indigo-600 text-white rounded-2xl font-bold uppercase text-xs hover:bg-indigo-500 transition-all text-center">
+            <a href={editLink} target="_blank" className="flex items-center justify-center gap-2 py-4 bg-indigo-600 text-white rounded-2xl font-bold uppercase text-xs text-center">
               <ExternalLink size={16} /> Open Edit Mode
             </a>
-            <button onClick={() => router.push('/')} className="py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold uppercase text-xs hover:bg-slate-200 transition-all">
+            <button onClick={() => router.push('/')} className="py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold uppercase text-xs">
               Go to Directory
             </button>
           </div>
@@ -156,43 +147,30 @@ export default function AddProfile() {
   }
 
   return (
-      {/* NAVBAR */}
-      {/* <div className="min-h-screen bg-slate-50 pb-20 font-sans">
-      <div className="max-w-2xl mx-auto flex items-center gap-4">
-        <button onClick={() => router.back()} className="p-2 hover:bg-slate-50 rounded-full transition-all">
-          <ChevronLeft size={24} />
-        </button>
-        <h1 className="text-xl font-black tracking-tighter uppercase">Join Network</h1>
-      </div> */}
-      
+    <div className="min-h-screen bg-slate-50 pb-20 font-sans">
       <div className="bg-white border-b p-4 sticky top-0 z-30 shadow-sm">
-      <div className="max-w-xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center text-white">
-            <UserPlus size={16} />
+        <div className="max-w-xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center text-white">
+              <UserPlus size={16} />
+            </div>
+            <h1 className="text-xl font-black text-slate-800">Join Network</h1>
           </div>
-          <h1 className="text-xl font-black text-slate-800 ">Join Network</h1>
+          <button onClick={() => router.push('/')} className="px-4 py-2 bg-slate-50 text-slate-400 rounded-xl text-[10px] font-black uppercase hover:bg-slate-100 transition-all">
+            Cancel
+          </button>
         </div>
-        <button 
-          onClick={() => router.push('/')} 
-          className="px-4 py-2 bg-slate-50 text-slate-400 rounded-xl text-[10px] font-black hover:bg-slate-100 transition-all"
-        >
-          Cancel
-        </button>
       </div>
-    </div>
-        
 
       <div className="max-w-xl mx-auto mt-8 px-4">
         <form onSubmit={handleSubmit} className="space-y-6">
-          
           {/* PHOTO SELECTION */}
           <div className="grid grid-cols-2 gap-4">
             {[1, 2].map(num => (
               <div key={num} className="bg-white p-2 rounded-[2.5rem] shadow-sm border border-slate-100 aspect-square flex flex-col items-center justify-center overflow-hidden relative group">
                 <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={(e) => setPhotos(prev => ({...prev, [`p${num}`]: e.target.files?.[0] || null}))} />
                 {photos[`p${num}` as 'p1' | 'p2'] ? (
-                  <img src={URL.createObjectURL(photos[`p${num}` as 'p1' | 'p2']!)} className="w-full h-full object-cover rounded-[2rem]" />
+                  <img src={URL.createObjectURL(photos[`p${num}` as 'p1' | 'p2']!)} className="w-full h-full object-cover rounded-[2rem]" alt="preview" />
                 ) : (
                   <div className="text-slate-400 flex flex-col items-center gap-2 group-hover:text-indigo-500 transition-colors">
                     <Camera size={24} />
@@ -206,43 +184,39 @@ export default function AddProfile() {
           {/* PERSONAL SECTION */}
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-5">
             <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Personal Info</h3>
-            <InputField label="Full Name *" name="name" icon={<User size={16}/>} placeholder="Full Name *" />
+            <InputField label="Full Name *" name="name" icon={<User size={16}/>} placeholder="Enter Full Name" />
             <div className="grid grid-cols-2 gap-4">
-              <InputField icon={<Calendar size={18}/>} label="Date of Birth *" name="dob" type="date" />
-              <InputField icon={<Clock size={18}/>} label="Time of Birth" name="time" type="time" />
+              <InputField label="Date of Birth *" name="dob" type="date" icon={<Calendar size={16}/>} />
+              <InputField label="Time of Birth" name="time" type="time" icon={<Clock size={16}/>} />
             </div>
-            <InputField label="Birth Place *" name="place" icon={<MapPin size={16}/>} placeholder="Birth City *" />
-            <InputField label="Gotra" name="gotra" />
-            <InputField label="Education *" name="education" placeholder="Highest Education (Degree)" />
-            <InputField label="Occupation *" name="occupation" icon={<Briefcase size={16}/>} placeholder="Current Occupation *" />
-            <InputField label="Hobbies" name="hobbies" />
+            <InputField label="Birth Place *" name="place" icon={<MapPin size={16}/>} placeholder="City, State" />
+            <InputField label="Gotra" name="gotra" placeholder="Enter Gotra" />
+            <InputField label="Education *" name="education" placeholder="Highest Degree" />
+            <InputField label="Occupation *" name="occupation" icon={<Briefcase size={16}/>} placeholder="Job Title or Business" />
+            <InputField label="Hobbies" name="hobbies" placeholder="Cricket, Reading, etc." />
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 ml-5 uppercase">Describe Yourself</label>
-              <textarea name="bio" rows={3} className="w-full px-5 py-4 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-slate-700 font-bold text-sm outline-none" placeholder="Write a few lines about yourself..." />
+              <textarea name="bio" rows={3} className="w-full px-5 py-4 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-slate-700 font-bold text-sm outline-none" placeholder="Write a few lines about your personality..." />
             </div>
           </div>
 
           {/* FAMILY SECTION */}
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-5">
             <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Family & Contact</h3>
-
-            <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-4">
-              <InputField icon={<Heart size={18}/>} name="father_name" placeholder="Father's Name" />
-              <InputField icon={<Heart size={18}/>} name="mother_name" placeholder="Mother's Name" />
-              <InputField icon={<Sparkles size={18}/>} name="business" placeholder="Family Business Name" />
+            <div className="grid grid-cols-2 gap-4">
+              <InputField label="Father's Name" name="father_name" icon={<Heart size={16}/>} />
+              <InputField label="Mother's Name" name="mother_name" icon={<Heart size={16}/>} />
             </div>
-              
-            <InputField label="Business Name" name="business" />
-            <InputField icon={<Phone size={18} label="Primary Contact *" name="contact_number" type="tel" maxLength={10} placeholder="e.g. 9876543210"/>
-
-            <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-4">
-              <InputField label="Family Contact 1" name="family_contact_1" placeholder="Family Contact 1"/>
-              <InputField label="Family Contact 2" name="family_contact_2" placeholder="Family Contact 2"/>
-            </div>
+            <InputField label="Family Business" name="business" icon={<Sparkles size={16}/>} />
+            <InputField label="Primary Contact *" name="contact_number" type="tel" maxLength={10} icon={<Phone size={16}/>} placeholder="10 Digit Number" />
             
+            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-50">
+              <InputField label="Extra Contact 1" name="family_contact_1" placeholder="Other Contact" />
+              <InputField label="Extra Contact 2" name="family_contact_2" placeholder="Other Contact" />
+            </div>
           </div>
 
-          <button disabled={uploading} className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase tracking-tight shadow-xl flex items-center justify-center gap-3 hover:bg-indigo-600 transition-all disabled:opacity-50">
+          <button disabled={uploading} className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase tracking-tight shadow-xl flex items-center justify-center gap-3 disabled:opacity-50">
             {uploading ? <Loader2 className="animate-spin" /> : <CheckCircle size={20} />}
             {uploading ? "Publishing Profile..." : "Create Profile"}
           </button>
@@ -252,13 +226,19 @@ export default function AddProfile() {
   );
 }
 
-function InputField({ label, name, type = "text", icon }: any) {
+function InputField({ label, name, type = "text", icon, placeholder, maxLength }: any) {
   return (
     <div className="space-y-1 w-full text-left font-sans">
-      <label className="text-[10px] font-bold text-slate-400 ml-5 uppercase tracking-tighter">{label}</label>
+      {label && <label className="text-[10px] font-bold text-slate-400 ml-5 uppercase tracking-tighter">{label}</label>}
       <div className="relative">
         {icon && <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300">{icon}</div>}
-        <input name={name} type={type} className={`w-full ${icon ? 'pl-12' : 'pl-5'} pr-5 py-4 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-slate-700 font-bold text-sm outline-none transition-all`} />
+        <input 
+          name={name} 
+          type={type} 
+          maxLength={maxLength}
+          placeholder={placeholder}
+          className={`w-full ${icon ? 'pl-12' : 'pl-5'} pr-5 py-4 bg-slate-50 border-none ring-1 ring-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-slate-700 font-bold text-sm outline-none transition-all`} 
+        />
       </div>
     </div>
   );
