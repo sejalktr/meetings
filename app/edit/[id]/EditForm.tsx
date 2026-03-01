@@ -64,7 +64,7 @@ export default function EditForm({ initialData, token }: EditFormProps) {
   };
 
   const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/profile/${profileData.id}`;
+    const shareUrl = `${window.location.origin}/details/${profileData.id}`;
     if (navigator.share) {
       try {
         await navigator.share({ title: profileData.name, url: shareUrl });
@@ -138,8 +138,14 @@ export default function EditForm({ initialData, token }: EditFormProps) {
         .eq('edit_token', token);
 
       if (updErr) throw updErr;
-      alert("Profile updated!");
-      router.push(`/profile/${profileData.id}`);
+      alert("Profile updated successfully!");
+      // Use the ID from the state we fetched at the start
+      if (profileData?.id) {
+        router.push(`/details/${profileData.id}`);
+      } else {
+        // Fallback to home if ID is missing for some reason
+        router.push('/');
+      }
       
     } catch (err: any) {
       alert(err.message);
