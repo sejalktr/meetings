@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { EditForm } from './EditForm';
+import EditForm from './EditForm';
 import { Suspense } from 'react';
 
 // 1. Force the page to be dynamic (never cached)
