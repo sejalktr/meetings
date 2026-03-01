@@ -8,17 +8,32 @@ import {
   Save, Sparkles, Phone, Share2
 } from 'lucide-react';
 
-export default function EditForm() {
+// 1. Define the Props interface for TypeScript
+interface EditFormProps {
+  initialData?: any; 
+  token: string;
+}
+
+// 2. Update the function to accept these props
+export default function EditForm({ initialData, token }: EditFormProps) {
   const router = useRouter();
   const params = useParams();
   const token = params.token as string;
-
-  const [loading, setLoading] = useState(true);
+  
+  // 3. Initialize state with the passed initialData if available
+  const [loading, setLoading] = useState(!initialData);
   const [updating, setUpdating] = useState(false);
-  const [profileData, setProfileData] = useState<any>(null);
-  const [photos, setPhotos] = useState<{ p1: File | string | null, p2: File | string | null }>({ p1: null, p2: null });
+  const [profileData, setProfileData] = useState<any>(initialData || null);
+  
+  // Set photos based on initialData
+  const [photos, setPhotos] = useState<{ p1: File | string | null, p2: File | string | null }>({ 
+    p1: initialData?.photo_1 || null, 
+    p2: initialData?.photo_2 || null 
+  });
 
+  // Keep the fetchProfile function as a backup in case initialData is missing
   const fetchProfile = useCallback(async () => {
+    if (profileData) return; // Skip if we already have data
     try {
       const { data, error } = await supabase
         .from('entries')
@@ -39,11 +54,11 @@ export default function EditForm() {
     } finally {
       setLoading(false);
     }
-  }, [token, router]);
+  }, [token, router, profileData]);
 
   useEffect(() => {
-    if (token) fetchProfile();
-  }, [token, fetchProfile]);
+    if (token && !initialData) fetchProfile();
+  }, [token, initialData, fetchProfile]);
 
   const removePhoto = (key: 'p1' | 'p2') => {
     setPhotos(prev => ({ ...prev, [key]: null }));
