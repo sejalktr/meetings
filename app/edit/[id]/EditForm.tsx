@@ -18,7 +18,6 @@ interface EditFormProps {
 export default function EditForm({ initialData, token }: EditFormProps) {
   const router = useRouter();
   const params = useParams();
-  const token = params.token as string;
   
   // 3. Initialize state with the passed initialData if available
   const [loading, setLoading] = useState(!initialData);
