@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { 
   Camera, CheckCircle, Loader2, User, MapPin, 
   Briefcase, Calendar, Clock, Heart, Trash2,
-  Copy, ExternalLink, Sparkles, Phone, UserPlus, Share2, Save
+  Save, Sparkles, Phone, Share2
 } from 'lucide-react';
 
 export default function EditForm() {
@@ -18,7 +18,6 @@ export default function EditForm() {
   const [profileData, setProfileData] = useState<any>(null);
   const [photos, setPhotos] = useState<{ p1: File | string | null, p2: File | string | null }>({ p1: null, p2: null });
 
-  // 1. FETCH EXISTING DATA
   const fetchProfile = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -28,13 +27,13 @@ export default function EditForm() {
         .single();
 
       if (error || !data) {
-        alert("Profile not found or invalid link.");
+        alert("Profile not found.");
         router.push('/');
         return;
       }
 
       setProfileData(data);
-      setPhotos({ p1: data.photo_1, p2: data.photo_2 });
+      setPhotos({ p1: data.photo_1 || null, p2: data.photo_2 || null });
     } catch (err) {
       console.error(err);
     } finally {
@@ -55,20 +54,19 @@ export default function EditForm() {
     if (navigator.share) {
       try {
         await navigator.share({ title: profileData.name, url: shareUrl });
-      } catch (err) { console.log(err); }
+      } catch (err) { console.log("Share failed", err); }
     } else {
       navigator.clipboard.writeText(shareUrl);
-      alert("Profile link copied!");
+      alert("Link copied!");
     }
   };
 
-  // 2. HANDLE UPDATE
   async function handleUpdate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
     const formData = new FormData(form);
 
-    // Validations
+    // Standard Validations
     const required = ['name', 'dob', 'place', 'education', 'occupation', 'contact_number'];
     for (const field of required) {
       if (!formData.get(field)) {
@@ -86,19 +84,20 @@ export default function EditForm() {
     setUpdating(true);
 
     try {
-      let urls = { p1: photos.p1 as string, p2: photos.p2 as string };
+      let urls = { p1: photos.p1, p2: photos.p2 };
 
-      // Handle New Uploads
+      // Image Processing
       for (const key of ['p1', 'p2'] as const) {
-        const file = photos[key];
-        if (file instanceof File) {
+        const item = photos[key];
+        if (item instanceof File) {
           const path = `profile-photos/${token}-${key}-${Date.now()}`;
-          const { error: upErr } = await supabase.storage.from('user-photos').upload(path, file);
+          const { error: upErr } = await supabase.storage.from('user-photos').upload(path, item);
           if (upErr) throw upErr;
           urls[key] = supabase.storage.from('user-photos').getPublicUrl(path).data.publicUrl;
-        } else if (file === null) {
-          urls[key] = ''; // Image was deleted
+        } else if (item === null) {
+          urls[key] = ''; // Explicitly clear in DB
         }
+        // If it's a string, it means the old URL remains, so we do nothing.
       }
 
       const { error: updErr } = await supabase
@@ -125,7 +124,7 @@ export default function EditForm() {
         .eq('edit_token', token);
 
       if (updErr) throw updErr;
-      alert("Profile updated successfully!");
+      alert("Profile updated!");
       router.push(`/profile/${profileData.id}`);
       
     } catch (err: any) {
@@ -143,7 +142,6 @@ export default function EditForm() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20 font-sans">
-      {/* STICKY HEADER */}
       <div className="bg-white border-b p-4 sticky top-0 z-30 shadow-sm">
         <div className="max-w-xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -153,10 +151,10 @@ export default function EditForm() {
             <h1 className="text-xl font-black text-slate-800 uppercase tracking-tight">Edit Profile</h1>
           </div>
           <div className="flex gap-2">
-            <button onClick={handleShare} className="p-2 text-slate-400 hover:text-indigo-600 transition-colors">
+            <button type="button" onClick={handleShare} className="p-2 text-slate-400 hover:text-indigo-600 transition-colors">
               <Share2 size={20} />
             </button>
-            <button onClick={() => router.back()} className="px-4 py-2 bg-slate-50 text-slate-400 rounded-xl text-[10px] font-black uppercase hover:bg-slate-100 transition-all">
+            <button type="button" onClick={() => router.back()} className="px-4 py-2 bg-slate-50 text-slate-400 rounded-xl text-[10px] font-black uppercase">
               Back
             </button>
           </div>
@@ -166,21 +164,21 @@ export default function EditForm() {
       <div className="max-w-xl mx-auto mt-8 px-4">
         <form onSubmit={handleUpdate} className="space-y-6">
           
-          {/* PHOTO SECTION WITH TRASH FUNCTION */}
+          {/* IMAGE SECTION */}
           <div className="grid grid-cols-2 gap-4">
             {(['p1', 'p2'] as const).map((key, index) => (
               <div key={key} className="bg-white p-2 rounded-[2.5rem] shadow-sm border border-slate-100 aspect-square flex flex-col items-center justify-center overflow-hidden relative group">
                 {photos[key] ? (
                   <>
                     <img 
-                      src={photos[key] instanceof File ? URL.createObjectURL(photos[key] as File) : photos[key] as string} 
+                      src={photos[key] instanceof File ? URL.createObjectURL(photos[key] as File) : (photos[key] as string)} 
                       className="w-full h-full object-cover rounded-[2rem]" 
                       alt="preview" 
                     />
                     <button 
                       type="button"
                       onClick={() => removePhoto(key)}
-                      className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-all z-20"
+                      className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-full shadow-lg z-20"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -188,9 +186,9 @@ export default function EditForm() {
                 ) : (
                   <>
                     <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={(e) => setPhotos(prev => ({...prev, [key]: e.target.files?.[0] || null}))} />
-                    <div className="text-slate-400 flex flex-col items-center gap-2 group-hover:text-indigo-500 transition-colors">
+                    <div className="text-slate-400 flex flex-col items-center gap-2">
                       <Camera size={24} />
-                      <span className="text-[10px] font-bold uppercase">Change Photo {index + 1}</span>
+                      <span className="text-[10px] font-bold uppercase">Update Photo {index + 1}</span>
                     </div>
                   </>
                 )}
@@ -198,7 +196,7 @@ export default function EditForm() {
             ))}
           </div>
 
-          {/* PERSONAL INFO */}
+          {/* PERSONAL SECTION */}
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-5">
             <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Personal Details</h3>
             <InputField label="Full Name *" name="name" defaultValue={profileData.name} icon={<User size={16}/>} />
@@ -217,7 +215,7 @@ export default function EditForm() {
             </div>
           </div>
 
-          {/* FAMILY & CONTACT - FULL WIDTH 1-LINERS */}
+          {/* FAMILY SECTION - 1 LINERS */}
           <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-5">
             <h3 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Family & Contact</h3>
             <InputField label="Father's Name" name="father_name" defaultValue={profileData.father_name} icon={<Heart size={16}/>} />
@@ -233,7 +231,7 @@ export default function EditForm() {
 
           <button disabled={updating} className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase tracking-tight shadow-xl flex items-center justify-center gap-3 disabled:opacity-50 transition-all hover:bg-emerald-600">
             {updating ? <Loader2 className="animate-spin" /> : <CheckCircle size={20} />}
-            {updating ? "Saving Changes..." : "Update Profile"}
+            {updating ? "Saving..." : "Update Profile"}
           </button>
         </form>
       </div>
@@ -241,6 +239,7 @@ export default function EditForm() {
   );
 }
 
+// Reusable Component
 function InputField({ label, name, type = "text", icon, defaultValue, maxLength }: any) {
   return (
     <div className="space-y-1 w-full text-left font-sans">
@@ -257,4 +256,4 @@ function InputField({ label, name, type = "text", icon, defaultValue, maxLength 
       </div>
     </div>
   );
-}  
+}
