@@ -81,7 +81,7 @@ export default function DetailPage() {
 
   return (
     <div className="min-h-screen bg-[#FAFBFF] pb-24 text-slate-900">
-      {/* 1. NAVBAR */}
+      {/* NAVBAR (remains the same) */}
       <nav className="sticky top-0 z-50 bg-white/70 backdrop-blur-2xl border-b border-slate-100 px-6 py-4">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <button onClick={() => router.push('/')} className="p-3 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-all">
@@ -89,46 +89,48 @@ export default function DetailPage() {
           </button>
           
           <div className="flex gap-2">
-            <button onClick={handleDownload} disabled={isDownloading} className="p-3 bg-slate-900 text-white rounded-2xl transition-all flex items-center gap-2 px-4">
+            <button onClick={handleDownload} disabled={isDownloading} className="p-3 bg-slate-900 text-white rounded-2xl transition-all flex items-center gap-2 px-4 shadow-xl">
               {isDownloading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
               <span className="text-[10px] font-black uppercase tracking-widest hidden md:block">
                 {isDownloading ? 'Generating...' : 'Download PDF'}
               </span>
             </button>
-            <button onClick={handleShare} className="p-3 bg-emerald-50 hover:bg-emerald-100 rounded-2xl transition-all group">
-              <Share2 size={20} className="text-emerald-600 group-hover:scale-110 transition-transform" />
+            <button onClick={handleShare} className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl transition-all">
+              <Share2 size={20} />
             </button>
           </div>
         </div>
       </nav>
 
-      {/* 2. MAIN CAPTURE AREA */}
-      <main ref={downloadRef} className="max-w-4xl mx-auto px-6 pt-6 bg-[#FAFBFF]">
-        {/* 1. IMAGES SECTION */}
+      {/* THE CAPTURE AREA */}
+      <main ref={downloadRef} className="max-w-4xl mx-auto px-6 pt-6 bg-[#FAFBFF] pb-20"> {/* Added pb-20 for PDF scroll space */}
+        
+        {/* IMAGES */}
         <div className="grid grid-cols-2 gap-4 h-[260px] md:h-[400px]">
           <ImageFrame src={person.photo_1} alt="Primary" />
           <ImageFrame src={person.photo_2} alt="Secondary" />
         </div>
-      
-        {/* 2. IDENTITY: Occupation & Gotra in Single Line */}
-        <div className="mt-10 space-y-6">
-          <div>
-            <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-slate-900 leading-[0.9]">
-              {person.name}
-            </h1>
-            <div className="mt-5 flex items-center gap-3 text-[11px] font-black uppercase tracking-[0.15em] text-slate-500">
-              <span className="flex items-center gap-1.5 text-emerald-600">
-                <Briefcase size={14} /> {person.occupation}
-              </span>
-              <span className="text-slate-300">|</span>
-              <span className="flex items-center gap-1.5">
-                <Trophy size={14} /> Gotra: {person.gotra || "—"}
-              </span>
+
+        {/* IDENTITY & FULL-WIDTH FIELDS */}
+        <div className="mt-10 space-y-4">
+          <h1 className="text-5xl md:text-6xl font-black tracking-tighter text-slate-900 leading-[0.9] mb-6">
+            {person.name}
+          </h1>
+          
+          {/* Full Width Lines for Occupation and Gotra */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
+              <Briefcase size={18} className="text-emerald-500" />
+              <p className="text-xs font-black uppercase tracking-widest text-slate-500">Occupation: <span className="text-slate-900 ml-2">{person.occupation}</span></p>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
+              <UserCircle2 size={18} className="text-emerald-500" /> {/* Person icon for Gotra */}
+              <p className="text-xs font-black uppercase tracking-widest text-slate-500">Gotra: <span className="text-slate-900 ml-2">{person.gotra || "—"}</span></p>
             </div>
           </div>
-      
-          {/* META GRID */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+
+          {/* META GRID (Birth Details) */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-4">
             <MetaBox icon={<Calendar size={18}/>} label="Birth Date" value={person.dob} />
             <MetaBox icon={<Clock size={18}/>} label="Time" value={person.time || "--:--"} />
             <MetaBox icon={<MapPin size={18}/>} label="Birth Place" value={person.place} />
@@ -136,52 +138,52 @@ export default function DetailPage() {
             <MetaBox icon={<Sparkles size={18}/>} label="Age" value={`${calculateAge(person.dob)} Years`} />
           </div>
         </div>
-      
-        {/* 3. BIO SECTION: Proper Header & Fixed Casing */}
+
+        {/* BIO CARD (Refined) */}
         {person.bio && (
-          <div className="mt-12">
-            <div className="flex items-center gap-2 mb-4 ml-2">
-              <Quote size={16} className="text-emerald-500" />
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">About Me</h3>
-            </div>
-            <div className="p-8 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm italic text-slate-700 leading-relaxed">
-              "{person.bio}"
-              {person.hobbies && (
-                <div className="mt-4 pt-4 border-t border-slate-50 not-italic">
-                  <span className="text-[9px] font-black uppercase text-emerald-600 mr-2 tracking-widest">Interests & Hobbies:</span>
-                  {/* lowercase class ensures it doesn't stay in all caps, capitalize makes it look neat */}
-                  <span className="text-sm font-semibold text-slate-500 capitalize">{person.hobbies.toLowerCase()}</span>
-                </div>
-              )}
+          <div className="mt-10 border-t border-slate-100 pt-10">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 ml-2">Self Description</h3>
+            <div className="p-8 bg-white border border-slate-100 rounded-[2rem] shadow-sm relative">
+               <Quote size={24} className="text-slate-100 absolute top-6 right-8" />
+               <p className="text-slate-700 leading-relaxed font-medium">
+                 {person.bio}
+               </p>
+               {person.hobbies && (
+                 <p className="mt-6 text-sm text-slate-500 border-t border-slate-50 pt-4">
+                   <span className="font-black text-[9px] uppercase tracking-widest text-emerald-600 mr-2">Hobbies:</span> 
+                   <span className="capitalize">{person.hobbies.toLowerCase()}</span>
+                 </p>
+               )}
             </div>
           </div>
         )}
-      
-        {/* 4. FAMILY & CONTACT: Reduced Highlight for Quick Contact */}
-        <div className="mt-12 bg-white rounded-[3rem] p-8 md:p-12 border border-slate-100 shadow-sm">
+
+        {/* FAMILY & ROOTS */}
+        <div className="mt-10 bg-white rounded-[3rem] p-8 md:p-12 border border-slate-100 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            <div className="space-y-8">
-              <div className="flex items-center gap-2 mb-6">
-                 <Heart size={16} className="text-red-400" fill="currentColor" />
-                 <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Family Details</h3>
-              </div>
-              <FamilyInfo label="Father's Name" value={person.father_name} />
-              <FamilyInfo label="Mother's Name" value={person.mother_name} />
-              <FamilyInfo label="Family Enterprise" value={person.business} isBusiness />
-            </div>
             
-            <div className="space-y-6">
-              <div className="flex items-center gap-2 mb-6">
-                 <Phone size={16} className="text-indigo-400" />
-                 <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contact Information</h3>
+            {/* Family Side */}
+            <div className="space-y-8">
+              <div className="flex items-center gap-2 mb-2">
+                 <Heart size={16} className="text-red-400" fill="currentColor" />
+                 <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Family Roots</h3>
               </div>
-              {/* Softened Contact UI - No more heavy black/emerald background */}
-              <ContactCard label="Primary Number" value={person.contact_number} isMain />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {person.family_contact_1 && <ContactCard label="Family Contact 1" value={person.family_contact_1} />}
-                {person.family_contact_2 && <ContactCard label="Family Contact 2" value={person.family_contact_2} />}
-              </div>
+              <FamilyRow label="Father" value={person.father_name} />
+              <FamilyRow label="Mother" value={person.mother_name} />
+              <FamilyRow label="Business" value={person.business} />
             </div>
+
+            {/* Contacts Side (Full width items inside the grid column) */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                 <Phone size={16} className="text-indigo-400" />
+                 <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Communication</h3>
+              </div>
+              <ContactRow label="Primary Contact" value={person.contact_number} isMain />
+              {person.family_contact_1 && <ContactRow label="Family Contact 1" value={person.family_contact_1} />}
+              {person.family_contact_2 && <ContactRow label="Family Contact 2" value={person.family_contact_2} />}
+            </div>
+
           </div>
         </div>
       </main>
@@ -190,6 +192,30 @@ export default function DetailPage() {
 }
 
 // --- COMPONENTS ---
+
+function FamilyRow({ label, value }: any) {
+  return (
+    <div className="pb-4 border-b border-slate-50 last:border-0">
+      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">{label}</p>
+      <p className="text-xl font-bold text-slate-900">{value || "—"}</p>
+    </div>
+  );
+}
+
+function ContactRow({ label, value, isMain }: any) {
+  return (
+    <div className={`w-full p-5 rounded-2xl border transition-all ${
+      isMain 
+      ? 'bg-slate-900 border-slate-800 text-white shadow-lg' 
+      : 'bg-slate-50 border-slate-100 text-slate-700'
+    }`}>
+      <p className={`text-[9px] font-black uppercase tracking-widest mb-1 ${isMain ? 'opacity-60' : 'text-slate-400'}`}>
+        {label}
+      </p>
+      <p className={`font-bold ${isMain ? 'text-xl' : 'text-base'}`}>{value}</p>
+    </div>
+  );
+}
 
 function ImageFrame({ src, alt }: { src: string, alt: string }) {
   return (
@@ -205,25 +231,6 @@ function ImageFrame({ src, alt }: { src: string, alt: string }) {
   );
 }
 
-function FamilyInfo({ label, value, isBusiness }: any) {
-  return (
-    <div className="group">
-      <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">{label}</p>
-      <p className={`${isBusiness ? 'text-xl' : 'text-2xl'} font-bold text-slate-900 tracking-tight`}>
-        {value || "—"}
-      </p>
-    </div>
-  );
-}
-
-function ContactCard({ label, value, isMain }: any) {
-  return (
-    <div className={`p-5 rounded-2xl border ${isMain ? 'bg-indigo-50/50 border-indigo-100' : 'bg-slate-50/50 border-slate-100'}`}>
-      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">{label}</p>
-      <p className={`font-bold ${isMain ? 'text-indigo-600 text-lg' : 'text-slate-700 text-sm'}`}>{value}</p>
-    </div>
-  );
-}
 
 function MetaBox({ icon, label, value }: { icon: any, label: string, value: string }) {
   return (
