@@ -1,5 +1,3 @@
-detail page-
-
 "use client";
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -20,23 +18,33 @@ export default function DetailPage() {
   const [loading, setLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  // --- FIXED DOWNLOAD LOGIC (No Clipping) ---
-const handleDownload = async () => {
+  // --- AGE CALCULATION ---
+  const calculateAge = (dobString: string) => {
+    if (!dobString) return 0;
+    const today = new Date();
+    const birthDate = new Date(dobString);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+    return age > 0 ? age : 0;
+  };
+
+  // --- DOWNLOAD LOGIC ---
+  const handleDownload = async () => {
     if (!downloadRef.current) return;
     setIsDownloading(true);
 
-    // Scroll to top is essential for correct coordinate calculation
+    // Ensure we start from the top for the snapshot
     window.scrollTo(0, 0);
 
     try {
       const element = downloadRef.current;
       const canvas = await html2canvas(element, {
-        scale: 2, // Higher scale = Sharper text
+        scale: 2,
         useCORS: true,
         backgroundColor: "#FAFBFF",
         scrollY: -window.scrollY,
         onclone: (clonedDoc) => {
-          // Ensure the element is fully expanded in the hidden clone
           const el = clonedDoc.getElementById('pdf-content');
           if (el) el.style.height = 'auto';
         }
@@ -44,22 +52,19 @@ const handleDownload = async () => {
 
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
-      
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      
-      // Calculate how many PDF pages we need
       const imgWidth = pdfWidth;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
       let heightLeft = imgHeight;
       let position = 0;
 
-      // First Page
+      // Add first page
       pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
       heightLeft -= pdfHeight;
 
-      // Subsequent Pages (If content is very long)
+      // Add extra pages if content is long
       while (heightLeft > 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
@@ -70,20 +75,9 @@ const handleDownload = async () => {
       pdf.save(`${person.name}_Biodata.pdf`);
     } catch (err) {
       console.error("PDF Export Error:", err);
-      alert("Could not generate PDF. Please try again.");
     } finally {
       setIsDownloading(false);
     }
-  };
-
-  const calculateAge = (dobString: string) => {
-    if (!dobString) return 0;
-    const today = new Date();
-    const birthDate = new Date(dobString);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-    return age > 0 ? age : 0;
   };
 
   const handleShare = async () => {
@@ -109,29 +103,40 @@ const handleDownload = async () => {
     loadData();
   }, [id]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-emerald-500" size={32} /></div>;
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <Loader2 className="animate-spin text-emerald-500" size={32} />
+    </div>
+  );
 
-return (
+  return (
     <div className="min-h-screen bg-[#FAFBFF] pb-24 text-slate-900">
-      {/* 1. NAVBAR (Exclude from Ref) */}
+      {/* 1. NAVBAR */}
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-6 py-4">
         <div className="max-w-3xl mx-auto flex justify-between items-center">
           <button onClick={() => router.push('/')} className="p-3 bg-slate-50 rounded-2xl">
             <ArrowLeft size={20} />
           </button>
-          <button 
-            onClick={handleDownload} 
-            disabled={isDownloading}
-            className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-xl disabled:opacity-50"
-          >
-            {isDownloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
-            {isDownloading ? "Generating..." : "Download PDF"}
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={handleDownload} 
+              disabled={isDownloading}
+              className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-xl disabled:opacity-50"
+            >
+              {isDownloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
+              <span className="text-[10px] font-black uppercase tracking-widest hidden md:block">
+                {isDownloading ? "Generating..." : "Download PDF"}
+              </span>
+            </button>
+            <button onClick={handleShare} className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
+              <Share2 size={20} />
+            </button>
+          </div>
         </div>
       </nav>
 
-      {/* 2. CAPTURE AREA (Wrapped in Ref) */}
-      <main ref={downloadRef} className="max-w-3xl mx-auto px-6 pt-8 bg-[#FAFBFF]">
+      {/* 2. CAPTURE AREA */}
+      <main ref={downloadRef} id="pdf-content" className="max-w-3xl mx-auto px-6 pt-8 bg-[#FAFBFF]">
         
         {/* IMAGES */}
         <div className="grid grid-cols-2 gap-4 h-[280px] md:h-[400px]">
@@ -173,19 +178,17 @@ return (
           </div>
         )}
 
-        {/* 3. THE FAMILY CARD (Everything in one card) */}
+        {/* 3. FAMILY & CONTACT CARD */}
         <div className="mt-8 bg-white border border-slate-100 rounded-[2.5rem] overflow-hidden shadow-sm">
           <div className="bg-slate-50 px-8 py-4 border-b border-slate-100">
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
               <Heart size={14} className="text-red-400" fill="currentColor" /> Family & Contact Info
             </h3>
           </div>
-          
           <div className="p-8 space-y-6">
             <FamilyItem label="Father's Name" value={person.father_name} />
             <FamilyItem label="Mother's Name" value={person.mother_name} />
             <FamilyItem label="Family Business" value={person.business} />
-            
             <div className="pt-6 border-t border-slate-50 space-y-4">
               <ContactItem label="Primary Contact" value={person.contact_number} isMain />
               {person.family_contact_1 && <ContactItem label="Family Contact 1" value={person.family_contact_1} />}
@@ -194,14 +197,14 @@ return (
           </div>
         </div>
 
-        {/* 4. PHYSICAL SPACER FOR PDF (Fixes bottom clipping) */}
-        <div className="h-20 w-full" />
+        {/* BOTTOM SPACER */}
+        <div className="h-24 w-full" />
       </main>
     </div>
   );
 }
 
-// --- COMPONENTS ---
+// --- INTERNAL COMPONENTS ---
 
 function FamilyItem({ label, value }: any) {
   return (
@@ -238,13 +241,12 @@ function ImageFrame({ src, alt }: { src: string, alt: string }) {
   );
 }
 
-
 function MetaBox({ icon, label, value }: { icon: any, label: string, value: string }) {
   return (
     <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col items-center text-center">
       <div className="text-emerald-500 mb-2">{icon}</div>
       <p className="text-[9px] font-black text-slate-400 uppercase mb-1">{label}</p>
-      <p className="text-[12px] font-bold text-slate-900">{value}</p>
+      <p className="text-[12px] font-bold text-slate-900">{value || 'N/A'}</p>
     </div>
   );
 }
