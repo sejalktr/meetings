@@ -148,12 +148,16 @@ export default function DetailPage() {
         <div className="mt-10 space-y-4">
           <h1 className="text-5xl font-black tracking-tighter leading-tight">{person.name}</h1>
           <div className="space-y-2">
-            <p className="flex items-center gap-2 text-emerald-600 font-black text-[11px] uppercase tracking-widest">
-              <Briefcase size={14} /> {person.occupation}
+            <p className="flex items-center gap-2 text-emerald-600 text-[11px] uppercase tracking-widest leading-none">
+              <Briefcase size={14} className="flex-shrink-0" />
+              <span className="font-bold">{person.occupation}</span>
             </p>
-            <p className="flex items-center gap-2 text-slate-400 font-black text-[11px] uppercase tracking-widest">
-              <UserCircle2 size={14} /> Gotra: <span className="text-slate-900">{person.gotra || "—"}</span>
+            <p className="flex items-center gap-2 text-[11px] uppercase tracking-widest">
+              <UserCircle2 size={14} className="text-slate-400 flex-shrink-0" />
+              <span className="text-slate-400 font-black"> Gotra: </span>
+              <span className="text-slate-900 font-semibold">{person.gotra || "—"}</span>
             </p>
+
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2 pt-4">
@@ -184,6 +188,11 @@ export default function DetailPage() {
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
               <Heart size={14} className="text-red-400" fill="currentColor" /> Family & Contact Info
             </h3>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+              <Heart size={14} className="text-red-400 flex-shrink-0" fill="currentColor" />
+              <span>Family & Contact Info</span>
+            </h3>
+
           </div>
           <div className="p-8 space-y-6">
             <FamilyItem label="Father's Name" value={person.father_name} />
@@ -198,7 +207,7 @@ export default function DetailPage() {
         </div>
 
         {/* BOTTOM SPACER */}
-        <div className="h-24 w-full" />
+        <div className="h-24" />
       </main>
     </div>
   );
